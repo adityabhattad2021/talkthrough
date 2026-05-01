@@ -1,35 +1,37 @@
-# Talkthrough — PRD v0
+# Talkthrough — PRD v1
 
-**Product:** Free, offline-first, situational language learning app for India
+**Product:** Voice-first, scenario-based language learning app
 **Version:** v0 (MVP)
 **Last updated:** April 10, 2026
-**Philosophy:** Open-source. On-device AI. No subscriptions. No cloud dependency. Your phone is the classroom.
+**Philosophy:** Situated fluency over abstract fluency. The conversation is the curriculum.
 
 ---
 
 ## 1. Problem
 
-Millions of people relocate within or into India every year — domestic migrants moving between states, expats settling in new cities, travelers navigating unfamiliar regions. They don't need to pass a Hindi exam. They need to negotiate an auto fare, explain symptoms to a pharmacist, or order food at a dhaba — *today*.
+I'm in Bangalore and I can't speak Kannada. Not enough to negotiate with my auto driver, not enough to chat with my landlord, not enough to order at the dosa place down the street without defaulting to English. School-format apps teach me grammar I don't need. Cloud chatbots cost a subscription and don't sound like the people I'm actually trying to talk to. There's no app that puts me in the specific situations of daily Bangalore life, lets me fail safely, and tells me what I should have said.
 
-Existing language apps teach grammar and vocabulary in isolation. They optimize for test scores, not survival. The few that use AI conversation require cloud APIs, subscriptions, and stable internet — luxuries for the domestic migrant on a ₹10/day data plan in a new city. There is no product that trains practical, situated fluency for Indian daily life and works offline, for free.
+This is a problem millions of people in India face — domestic migrants between states, expats settling in cities, anyone who needs to live in a language they didn't grow up speaking. v0 solves it for one user (me) so we can find out if the product idea actually works before solving it for everyone else.
 
 ## 2. Solution
 
-A voice-first, scenario-based language learning app powered by an on-device LLM (Gemma 4) that runs entirely on the user's phone. No internet required. No subscription. No data leaving the device.
+A voice-first, scenario-based language learning app powered by a real-time conversational AI agent.
 
-Each scenario is a contained, real-world situation (negotiating with an auto driver, visiting a doctor, buying vegetables at a market). Users prepare with cultural context and key vocabulary, then enter an immersive voice conversation with an AI character running locally, and receive targeted feedback on what they said, how they said it, and whether it was culturally appropriate.
+Each scenario is a contained, real-world Bangalore situation (auto rickshaw, chai stall, sabzi mandi, pharmacy, landlord call, doctor visit). The user prepares with cultural context and key vocabulary, then enters a real-time voice conversation with an AI character speaking Kannada at a calibrated difficulty level, then receives targeted feedback on what they said, how they said it, and whether it was culturally appropriate.
 
-The moat is offline. Every other AI language app is a thin client over a cloud API. This app is the AI.
+The thesis: *situated fluency beats abstract fluency.* You learn the language faster when you're trying to do the actual thing you'd do in the actual situation. The moat isn't the AI — anyone can wire up an API. The moat is the curriculum: situations chosen for their actual frequency in daily life, agent characters tuned for the specific register and pace of those situations, and a feedback layer that grades cultural appropriateness, not just grammar.
 
 ## 3. Target Users
 
-**Primary — Expats and long-term visitors:** A software engineer from Berlin posted to Bangalore. Wants to speak enough Kannada/Hindi to stop feeling like a tourist. Has disposable income and a newer phone. Motivated by social integration.
+**v0 — me.** Single user. English-speaking adult in Bangalore who wants to learn Kannada for daily life. The app exists to test whether the core loop works for one motivated learner before investing in serving anyone else.
 
-**Secendary — Travelers:** Passing through for weeks or months. Wants a survival toolkit, not deep fluency. High initial engagement, lower retention.
+**v1 — Indic learners broadly.** Expats and long-term visitors in Indian cities. Domestic migrants between states. Indians learning a second Indian language for work, study, or relocation. Added once the v0 loop is proven, alongside auth, multi-user state, and content for additional Indic language pairs.
+
+**v2 and beyond — non-Indic markets.** French, Spanish, etc. for English speakers. Likely on a different vendor stack (ElevenLabs Conversational AI is well-suited). v0 deliberately doesn't try to serve these audiences yet.
 
 ## 4. Core Experience
 
-On first launch, a three-screen onboarding sets the narrative, picks a language, and asks for a name. Takes 30 seconds. Then the user is on the Pathway and never sees onboarding again.
+On first launch, a three-screen onboarding sets the tone, confirms the language pair, and asks for a name. Takes 30 seconds. Then the user is on the Pathway and never sees onboarding again.
 
 The app is structured as a linear journey through progressively complex real-world scenarios. The user moves through five screens per scenario:
 
@@ -43,349 +45,358 @@ This loop is the entire product. There are no side quests, no social features, n
 
 ### 5.1 What ships
 
-**Two language pairs at launch:**
-- **Hindi** for English speakers — highest demand corridor.
-- **Kannada** for Hindi speakers — validates the cross-regional use case from day one.
+**One language pair:**
+- **Kannada for English speakers.** Single pair, single vendor, single architecture, single user.
 
-Each pair has its own scenario content, vocabulary, cultural tips, and Gemma 4 system prompts. The architecture supports adding more pairs without app changes (content is data, not code).
-
-**Six scenarios per language, across three difficulty tiers:**
+**Six scenarios across three difficulty tiers:**
 
 | Tier | Scenario | Key interaction |
 |---|---|---|
 | Beginner | Auto Rickshaw | Negotiate a fare, give directions |
 | Beginner | Chai Stall | Order, make small talk |
-| Intermediate | Grocery / Sabzi Mandi | Ask prices, bargain, count |
+| Intermediate | Sabzi Mandi | Ask prices, bargain, count |
 | Intermediate | Pharmacy | Describe symptoms, understand dosage |
 | Advanced | Landlord Call | Discuss a maintenance issue |
 | Advanced | Doctor Visit | Describe medical history, ask questions |
 
-**Five screens, fully functional:**
+**Five screens, fully functional** (specs in Section 6).
 
-1. **The Pathway (Home)** — Vertical node map. Nodes unlock sequentially. Completed nodes show a checkmark. Locked nodes are greyed out. Tapping an unlocked node opens a bottom sheet with the scenario title, a one-line summary, and a "Begin" button.
+**Infrastructure:** Cloud-based real-time voice agent (Gemini Live via Pipecat). Local SQLite for state. Requires internet during roleplay; Briefing and Warm-Up cache content for offline use.
 
-2. **Scenario Briefing** — Static screen. Cultural context card (the "Pragmatic Tip"), vocabulary list with transliteration, and a full-width CTA to continue.
+### 5.2 Explicitly out of scope for v0
 
-3. **Vocab Warm-Up** — A short, interactive drill (60–90 seconds) that cycles through the scenario's 6–8 key phrases. Three micro-steps per phrase: *listen* (hear TTS pronounce it), *repeat* (speak it back, STT confirms), *use it* (see it in a one-line example sentence from the scenario). Swipe or tap to advance. No scoring, no failure state — this is a warm-up, not a test. The CTA at the end says "Ready? Start Roleplay."
+- Authentication and accounts. Local-only state.
+- Multi-user data, cloud sync, telemetry, leaderboards, streaks-as-gamification.
+- Multiple language pairs.
+- Monetization. The app is free; there is no customer because there is no customer yet.
+- App Store / Play Store distribution. Side-loaded via Expo dev build to your own device.
+- Dark mode. Light mode only.
+- Illustrations and decorative graphics.
 
-4. **Active Roleplay** — Voice-first conversation screen. User holds a mic button to speak; AI responds with synthesized speech. Live transcription scrolls at the bottom (user text in black, AI text in terracotta). A pulsing circle provides visual feedback for AI speech. A close button and "End Conversation" button are always accessible. **Runs entirely on-device.**
+These are added in v1 after the core loop is proven for one user.
 
-5. **After-Action Review** — Score ring (percentage), three feedback cards (Pronunciation, Vocabulary Used, Cultural Etiquette), inline correction highlights, and a "Continue Journey" CTA that returns to the Pathway.
-
-**Infrastructure:**
-
-- On-device Gemma 4 model (quantized for mobile) with per-scenario system prompts (character, context, difficulty constraints, conversation goals).
-- On-device speech-to-text for user input (Hindi/Kannada + English code-switching support).
-- On-device text-to-speech for AI character responses.
-- Local-first user profile: name, selected language pair, current node, completion states, streak count. Stored on-device via AsyncStorage/SQLite.
-- Zero network dependency for core functionality.
-
-### 5.2 What doesn't ship
-
-- Additional language pairs beyond Hindi←English and Kannada←Hindi (Tamil, Marathi, Bengali — planned for v1+).
-- Spaced repetition or standalone vocabulary review.
-- Social/community features.
-- Analytics dashboard for users (internal analytics only).
-- Accessibility features beyond basic screen reader support.
-
-### 5.3 Monetization (v0)
-
-The app is free and fully functional with no paywalls on core features. A single optional "Support the Developer" screen is accessible from settings. One-time payments only (e.g., ₹149 / $1.99 tiers). No recurring subscriptions. No ads. No data monetization. The payment unlocks a small cosmetic acknowledgment (e.g., a "Supporter" badge on the profile) but zero functional gates.
-
-This is a principled choice, not a placeholder. The app stays free.
+---
 
 ## 6. Screen Specifications
 
 ### 6.0 Onboarding (First Launch Only)
 
-Three screens, shown once. No skip button — this is a 30-second flow, not a wall. Data is saved locally; the user never sees these again.
+Three screens, shown once. No skip button — this is a 30-second flow.
 
-**Screen 1 — Narrative**
+**Screen 1 — Narrative.** Full-screen, centered text on `bone`. No inputs, no illustration. A short, direct statement:
 
-**Purpose:** Set the tone. Tell the user what this app is and isn't. Build confidence before asking for anything.
+> *You don't need to study a language. You need to live in one. This app puts you in real conversations with an AI that speaks Kannada like the people around you.*
 
-**Layout:** Full-screen, centered text on `--color-background`. No inputs.
+Single CTA at the bottom: "Let's go."
 
-**Content:** A short, direct statement — something like:
+**Screen 2 — Language confirmation.** Heading: "You're learning Kannada." Subtitle: "More languages coming." Single CTA: "Continue."
 
-> *"You don't need to study a language. You need to survive in one. This app throws you into real conversations — with an AI that lives on your phone, works offline, and doesn't judge your accent."*
+(In v0 there's only one pair, so this is confirmation, not selection. The screen exists so v1 can drop a selector in without restructuring the flow.)
 
-The exact copy is a creative decision, but the intent is: you're not in school, you're in training. This is practical, this is immediate, and it works without Wi-Fi.
-
-**Bottom:** Single CTA, full-width terracotta: "Let's go." Advances to Screen 2.
-
-**Design notes:** Text only. No illustration, no animation. Let the words land. Eczar heading for the hook line, DM Sans for the body. Generous vertical padding.
-
-**Screen 2 — Language Selection**
-
-**Purpose:** Choose your learning pair.
-
-**Layout:** Centered heading + two (or more, as languages are added) large selectable cards.
-
-**Heading:** "What do you want to speak?" (24px Eczar)
-
-**Cards:** Each card shows the target language name in its own script (large, e.g., "हिन्दी") with a subtitle indicating the source language (e.g., "for English speakers"). White surface, 1px border. Selected state: terracotta border, subtle terracotta tint on background.
-
-**Bottom:** CTA: "Continue" — enabled only after selection.
-
-**Data saved:** `language_pair` (e.g., `hi-en`, `kn-hi`).
-
-**Screen 3 — Name**
-
-**Purpose:** Personalize the experience. The app greets the user by name on the Pathway screen.
-
-**Layout:** Centered heading + single text input + CTA.
-
-**Heading:** "What should I call you?" (24px Eczar)
-
-**Input:** Single-line, centered, 48px height, 1px border, 4px radius. Placeholder: "Your name". Auto-focused, keyboard opens immediately.
-
-**Bottom:** CTA: "Start my journey" — enabled when input is non-empty. Transitions to The Pathway.
-
-**Data saved:** `user_name`.
-
-**Design notes:** Keep this warm but fast. No last name, no email, no account creation. Just a name so the app can say "Namaste, Arjun" instead of "Namaste, User."
+**Screen 3 — Name.** Heading: "What should I call you?" Single text input, auto-focused. CTA enabled when non-empty: "Start my journey." Saves `user_name` to local SQLite. Transitions to The Pathway.
 
 ### 6.1 The Pathway (Home)
 
-**Layout:** Fixed 64px header with bottom border. Vertically scrolling body. Centered 2px vertical timeline.
+**Layout:** Fixed 64px header with bottom border. Vertically scrolling body. Centered 1px vertical timeline in `stone`.
 
-**Header:** Left-aligned greeting ("Namaste, {name}"). Right-aligned streak counter with a terracotta flame icon.
+**Header:** Left-aligned greeting ("Namaste, {name}"). Right-aligned streak counter with a subtle flame icon — one of the few places sage appears in chrome.
 
-**Nodes:** 48×48px circles positioned on the timeline. Active nodes: terracotta fill, white icon. Completed nodes: terracotta fill, white checkmark. Locked nodes: off-white fill, warm-grey border and icon.
+**Nodes:** 48×48px circles positioned on the timeline.
+- **Locked:** stone fill, no border, ash icon.
+- **Active:** bone fill, sage-500 1.5px border, ink icon.
+- **Completed:** sage-500 fill, paper checkmark.
 
-**Interaction:** Tapping an active/completed node opens a bottom sheet (slide-up, 200ms ease) with scenario name, one-line description, and a "Begin" / "Retry" CTA.
-
-**State — Loading:** Timeline line pulses with an opacity fade animation.
+**Interaction:** Tapping an active or completed node opens a bottom sheet with scenario name, one-line description, and a Begin or Retry CTA.
 
 ### 6.2 Scenario Briefing
 
-**Layout:** Scrollable stack. Fixed bottom CTA bar.
+**Layout:** Scrollable stack with fixed bottom CTA bar. No hero illustration in v0 — the scenario title in Heading size is the visual.
 
 **Elements (top to bottom):**
-- Line-art hero illustration, 200px height, white background.
-- Scenario title (24px Eczar, 600 weight).
-- Cultural context card: warm yellow background (#FFFBEB), 1px amber border (#FDE68A). Heading "The Pragmatic Tip" in saffron. Body in 16px DM Sans.
-- Vocabulary section: flex-wrap chips. Each chip shows the word in Devanagari, romanized transliteration below, 1px border, 4px radius. Tap to hear pronunciation.
-- Fixed bottom bar: 56px terracotta CTA, white text, "Continue to Warm-Up."
-
-**State — Loading:** Skeleton rectangles for chips and context card.
+- Scenario title (Heading style, 22px Inter Medium).
+- Cultural context card: paper surface, 0.5px ink border at 8% opacity, 16px radius. Heading "The Pragmatic Tip" in title style. Body in 16px Inter Regular.
+- Vocabulary section: flex-wrap chips. Each chip shows the word in Kannada script, romanized transliteration below, paper background, 0.5px border, 12px radius. Tap to hear pronunciation.
+- Fixed bottom: 56px sage-500 primary button, "Continue to Warm-Up."
 
 ### 6.3 Vocab Warm-Up
 
 **Purpose:** Get the key phrases into short-term memory so the user isn't silent in the roleplay. A warm-up, not a test.
 
-**Layout:** Full-screen card carousel. One phrase per card. Fixed bottom progress indicator + CTA.
+**Layout:** Full-screen card carousel. One phrase per card. Fixed bottom progress dots and Next button.
 
-**Card anatomy (per phrase):**
-- Target phrase in native script (24px Eczar, centered). e.g., "कितना लगेगा?"
-- Romanized transliteration below (16px DM Sans, muted). e.g., "Kitna lagega?"
-- English meaning (13px DM Sans, muted). e.g., "How much will it cost?"
+**Card anatomy:**
+- Target phrase in Kannada script (Title style, centered).
+- Romanized transliteration below (Caption, fog).
+- English meaning (Caption, fog).
 - Speaker icon: tap to hear TTS pronounce the phrase. Auto-plays on card entry.
-- Mic icon: tap and hold to repeat. STT listens; on release, a simple checkmark confirms it heard something reasonable. No strict grading — even a rough attempt gets the check.
-- Context line (13px DM Sans, italic): a one-line example from the scenario. e.g., "You'd say this to the auto driver before getting in."
+- Mic icon: press and hold to repeat. Native STT listens; on release, a checkmark confirms it heard something reasonable. No strict grading.
+- Context line (Caption, italic): one-line example from the scenario.
 
-**Progress:** Dot indicators at the bottom (one per phrase). Swipe left to advance, or tap "Next" button.
+**Final card:** "You're ready." Full-width sage CTA: "Start Roleplay."
 
-**Final card:** "You're ready." with a full-width CTA: "Start Roleplay." Transition to Active Roleplay.
-
-**Design notes:** Same visual language as the rest of the app — white cards, 1px borders, 4px radius. No gamification (no points, no stars, no streaks on this screen). The warm-up should feel like a quick stretch before a run, not a quiz.
-
-**States:**
-- Listening: mic icon pulses terracotta, card border shifts to terracotta.
-- Confirmed: checkmark appears next to the mic icon, subtle haptic.
-- Skipped: user can swipe past without speaking. No penalty.
+**No gamification on this screen.** No points, no stars, no streaks. The warm-up should feel like a quick stretch before a run, not a quiz.
 
 ### 6.4 Active Roleplay
 
-**Layout:** Maximally minimal. No chrome beyond a top bar and bottom mic.
+**Layout:** Maximally minimal. Top bar and pulse only.
 
-**Top bar:** 48px. Close (X) on left. Scenario title centered. "End Conversation" text button on right.
+**Top bar:** 56px. Close (×) on left. Scenario title centered (Title style). End text button on right.
 
-**Center:** 120×120px pulsing circle. Terracotta when AI is speaking (pulse synced to volume). Dark grey when listening.
+**Center:** 120×120px breathing pulse with two soft halos.
+- **AI speaking:** sage-500 fill, sage halos.
+- **AI listening:** ink fill, ink halos.
+- The pulse breathes at 0.5Hz (2-second loop), scaling 1.0 → 1.06 → 1.0. Slow enough to feel alive, never anxious.
 
-**Bottom 30%:** Live transcription area with a top-fade gradient mask. User lines in dark text, AI lines in terracotta. 18px DM Sans, 1.5 line height. Auto-scrolls to latest line.
+**Below the pulse:** Character name in Micro style (uppercase, tracked) — e.g., "RAVI."
 
-**Mic button:** Fixed bottom center, 64×64px circle. Press-and-hold to speak. Haptic on press. Release sends audio to STT → LLM pipeline.
+**Bottom 30%:** Last 3 transcript lines. User in ink, AI in sage-500. Title size, 1.35 line height.
+
+**No mic button.** Gemini Live's VAD handles turn-taking — the user just talks. This is a deliberate departure from the original press-and-hold design; the magic of Gemini Live is that you don't think about when to talk.
 
 **States:**
-- AI Speaking: visualizer pulses, mic dimmed.
-- User Speaking (holding mic): visualizer dark, live transcription writes.
-- Processing: brief spinner after mic release.
-- Error: toast notification, "Something went wrong. Tap to retry." Mic disabled.
+- Connecting: pulse static, "Connecting" label.
+- Live: pulse breathing, character name shown.
+- Error: ink error message, end button to retry.
 
 ### 6.5 After-Action Review
 
 **Layout:** Scrollable body, fixed bottom CTA.
 
-**Score ring:** 160px circular gauge, centered. Percentage in large text inside. Ring fill color: terracotta for <70%, saffron/accent for 70–89%, green (#16A34A) for 90%+.
+**Score ring:** 160px circular gauge, centered. 4px stroke. Sage-200 track, sage-500 fill. Fills with spring motion on screen entry, slight overshoot before settling. Percentage in Display style inside, with tabular numerals.
 
-**Feedback cards:** Three white cards with 1px borders, 16px padding, 12px vertical gap.
+**Feedback cards:** Three paper cards with 0.5px ink borders at 8%, 16px radius, 20px padding, 12px vertical gap.
 - **Pronunciation:** Lists flagged words. Each shows what was detected (struck through) → correct pronunciation. Tap play icon to hear correct version.
-- **Vocabulary Used:** Shows which briefing vocab the user successfully deployed, and which were missed.
-- **Cultural Etiquette:** Contextual notes (e.g., "You jumped to price before greeting — starting with 'Bhaiya' would have set a better tone.").
+- **Vocabulary Used:** Which briefing vocab the user successfully deployed, and which were missed.
+- **Cultural Etiquette:** Contextual notes (e.g., "You jumped to price before greeting — starting with 'anna' would have set a better tone.").
 
-**CTA:** "Continue Journey" → returns to Pathway with the next node unlocked.
+**CTA:** Sage primary button, "Continue Journey." Returns to Pathway with the next node unlocked.
 
-**State — Loading:** Skeleton cards with pulsing text: "Analyzing your conversation…"
+---
 
 ## 7. Design System
 
-### Colors
-| Token | Value | Usage |
+See `DESIGN_SYSTEM.md` for the full spec. Summary:
+
+**Direction:** Studio Calm. Restraint as personality. One color does one thing. Motion is the playfulness.
+
+**Core palette:**
+- `bone` (#F4F4F1) — app background
+- `paper` (#FFFFFF) — card surfaces
+- `ink` (#1A1A1A) — primary text
+- `sage-500` (#6A8A6C) — the only chromatic color, used for AI voice, active states, success
+- Plus supporting neutrals (`stone`, `mist`, `slate`, `fog`, `ash`)
+
+**Typography:** Inter, two weights (400, 500), six sizes. Kannada script falls through to system font.
+
+**Motion:** Three primitives. Spring (transitions, 22 damping / 280 stiffness / 0.8 mass), Breath (sustained pulse, 2s loop), Snap (immediate feedback, 120ms).
+
+**No illustrations, no dark mode, no additional colors in v0.** These are the decisions most likely to be tempted out of in week 3; resist.
+
+---
+
+## 8. Technical Architecture
+
+### 8.1 Stack
+
+| Layer | Choice | Why |
 |---|---|---|
-| `--color-primary` | #D9534F | CTAs, active nodes, AI transcription |
-| `--color-background` | #F9F9F8 | App background |
-| `--color-surface` | #FFFFFF | Cards, sheets |
-| `--color-text` | #1C1917 | Primary text |
-| `--color-muted` | #A8A29E | Disabled states, secondary text |
-| `--color-accent` | #D97706 | Success states, cultural tips |
+| Client | React Native via Expo (dev build, not Expo Go) | Mobile-first product; dev build for native audio + WebRTC |
+| Voice transport | Pipecat React Native SDK + SmallWebRTC (dev) / Daily (production) | Industry-standard WebRTC pipeline; mature SDK |
+| Pipeline orchestration | Pipecat (Python, single VM) | Open-source; Gemini Live plugin first-class supported |
+| Voice engine | Gemini Live API (gemini-2.5-flash-native-audio) | Speech-to-speech in one model; sub-second turn-taking; affective dialog; Kannada quality validated empirically |
+| Local state | SQLite via Expo SQLite | No auth, no cloud at v0 |
+| Grading (post-call) | Claude Sonnet via API | Reasoning-heavy, separate from real-time pipeline |
+| Server hosting | Single small VM in India region (DigitalOcean BLR or AWS Mumbai) | One user, one process, minimal infra |
 
-### Typography
-| Role | Font | Weight | Size |
-|---|---|---|---|
-| Headings | Eczar | 600 | 24–32px |
-| Body | DM Sans | 400 | 16px |
-| Small | DM Sans | 400 | 13px |
-| Buttons | DM Sans | 500 | 15px, 1px tracking |
+### 8.2 Why Gemini Live (not Sarvam, not ElevenLabs)
 
-### Principles
-- **Radius:** 4px default. Structured, slightly rigid.
-- **Elevation:** 1px solid #E7E5E4 borders. No shadows. Flat, print-like.
-- **Icons:** 1.5pt stroke, minimalist line art.
-- **Motion:** Ease transitions, 150–200ms. No bouncy spring physics. Use React Native Reanimated for performant animations.
+This decision was empirical. After exploring Sarvam (best Indic-specialist option) and ElevenLabs (fastest to ship), Gemini Live's in-app voice chat was tested directly in Kannada and the quality was strong enough to commit. Three reasons it wins for v0:
 
-## 8. Technical Architecture (v0)
+1. **Speech-to-speech architecture preserves prosody.** Pipelined STT → LLM → TTS loses tone, hesitation, emphasis. Gemini Live processes raw audio and outputs raw audio, capturing the affect that makes conversation feel real.
+2. **The "magic" you build matters.** The product hypothesis is that AI conversation can feel like real conversation. Building on a stack that already feels that way is the right starting point.
+3. **Pipecat keeps it swappable.** If Gemini Live disappoints in production, swap to Sarvam (STT + TTS + LLM) in three lines of pipeline config. The RN client doesn't change.
 
-### Core Principle: Everything On-Device
+### 8.3 Data flow
 
-The entire AI pipeline — inference, speech recognition, speech synthesis, grading — runs locally. The phone never needs to call a server to deliver the core experience. This is the product's moat: no API costs that scale with users, no latency from network round-trips, no privacy concerns, and full functionality on a train through a tunnel.
+A scenario session has three phases:
 
-### Client
+**Pre-conversation.** Client loads scenario from local content (`/content/kn-en/{id}.json`): briefing copy, vocab list, cultural tip, agent system prompt, voice ID. Renders Briefing → Warm-Up. Warm-Up uses Gemini's standalone TTS endpoint for phrase playback (cheaper than spinning up an agent session) and the device's native STT for repeat-back confirmation.
 
-**Framework:** React Native (Expo managed workflow where possible, bare workflow for native module integration).
+**Conversation.** Client opens WebRTC connection to the Pipecat server with `scenario_id` as a connect parameter. Server loads the scenario config and constructs the system prompt. Pipecat pipes audio through Gemini Live: the model processes incoming audio, generates a response, and streams audio back. Pipecat exposes both user and assistant transcripts via callbacks; client renders them live in the transcript area.
 
-**Platforms:** Android first (primary user base), iOS in parallel. Android minimum target: Android 10+ with 4GB+ RAM (covers ~80% of Indian Android market).
+**Post-conversation.** On `endSession`, the Pipecat server has the full transcript in `task.context.messages`. Server calls Claude Sonnet with the transcript + scenario metadata + structured grading prompt. Returns JSON matching the `reviews` schema. Client polls or subscribes via SSE; renders After-Action Review when ready (typically 3-5 seconds).
 
-**Navigation:** React Navigation (stack + bottom sheet). Four-screen linear flow per scenario.
+### 8.4 Latency budget and streaming architecture
 
-**Local storage:** SQLite via `expo-sqlite` or `react-native-sqlite-storage` for user profile, progress, scores, and streak data. All scenario content (system prompts, vocabulary, cultural tips) bundled as JSON assets.
+Conversation latency is the thing that makes v0 succeed or fail. Real human conversations have ~300ms gaps between turns. Voice apps at 800ms feel alive. At 1.2s they feel okay. At 2s the user assumes the AI is broken.
 
-### On-Device LLM: Gemma 4
+**Targets:**
+- P50 turn latency (end-of-speech to first AI audio): <1.0s
+- P95 turn latency: <1.8s
+- WebRTC drop rate: <2% of sessions
 
-TODO
+Gemini Live's native audio model handles all four traditional pipeline stages (STT, LLM thinking, TTS, audio streaming) internally as a single model call. There's no STT-then-LLM-then-TTS sequencing to optimize; the model takes audio and produces audio. Pipecat manages the WebRTC transport and pipeline metrics.
 
-### Data Architecture
+**What can break it on the client side:**
+- Server in the wrong region. Host in India.
+- Audio buffering before playback. Pipecat's RN transport plays as it streams; don't intercept.
+- Blocking the JS thread on transcript rendering. Use efficient state updates, not synchronous re-renders.
 
-All user data stays on-device:
+Pipecat exposes pipeline metrics natively. Instrument these from day one — Phase 1 of the build order is "validate latency before building UI."
 
-- **Profile:** name, selected language pair, active pathway position.
-- **Progress:** Per-scenario completion state, best score, attempt count.
-- **Streaks:** Current streak, longest streak, last active date.
-- **Transcripts:** Optionally saved locally for user review. Never uploaded.
+### 8.5 Pipecat pipeline (sketch)
 
-### Scenario Content Model
-
-Scenarios are data, not code. Each scenario is a single JSON file conforming to a strict schema:
-
-```
-{
-  "id": "auto-rickshaw",
-  "language_pair": "hi-en",
-  "tier": "beginner",
-  "title": { "en": "Auto Rickshaw", "hi": "ऑटो रिक्शा" },
-  "summary": "Negotiate a fare and give directions.",
-  "cultural_tip": { "title": "The Pragmatic Tip", "body": "Always ask..." },
-  "vocabulary": [
-    {
-      "word": "कितना",
-      "transliteration": "Kitna",
-      "meaning": "How much",
-      "example": "Kitna lagega bhaiya?",
-      "audio_key": "kitna.mp3"
-    }
-  ],
-  "system_prompt": "You are Raju, a friendly auto driver in Bangalore...",
-  "grading_prompt": "Evaluate the following conversation transcript...",
-  "version": 1
-}
+```python
+pipeline = Pipeline([
+    transport.input(),
+    GeminiMultimodalLiveLLMService(
+        api_key=os.getenv("GOOGLE_API_KEY"),
+        model="gemini-2.5-flash-native-audio",
+        voice_id=scenario["voice_id"],
+        system_instruction=build_system_prompt(scenario),
+        params=InputParams(language="kn-IN", temperature=0.8),
+    ),
+    transport.output(),
+])
 ```
 
-**Bundled scenarios (v0):** 6 per language × 2 languages = 12 JSON files, shipped with the APK/IPA. These are the core product and work fully offline, forever.
+One pipeline per active conversation. Scenario config (system prompt, voice, difficulty hints) loaded from local JSON at session start. Single-user; no multi-tenancy needed.
 
-**Community scenarios:** A public GitHub repo (`pragmatic-journey-scenarios`) hosts the scenario schema spec and accepts PRs. Anyone can author a scenario JSON for any language pair. The maintainer (you) reviews and merges. The app, when it has connectivity, checks a static JSON index file hosted on GitHub Pages or a cheap CDN. New/updated scenarios are downloaded and cached locally. Once cached, they work offline like bundled ones.
+### 8.6 Scenario content as code
 
-**How it works for the user:** On the Pathway screen, after the bundled scenarios, a "Community Scenarios" section appears (only if new packs have been synced). These show up as additional nodes with a subtle "community" badge. No paywall. No account required.
+Six scenarios live as JSON files in the repo:
 
-**Content contribution flow:** Contributor forks the repo → creates a JSON file following the schema → opens a PR → maintainer reviews for quality and safety → merge → appears in the index → users pick it up on next sync.
+```
+/content/kn-en/
+├── auto_rickshaw.json
+├── chai_stall.json
+├── sabzi_mandi.json
+├── pharmacy.json
+├── landlord_call.json
+└── doctor_visit.json
+```
 
-This keeps the architecture dead simple: no backend, no CMS, no database. Just a Git repo and a static file.
+Each file contains: scenario metadata, briefing markdown, vocabulary list, cultural tip, character description, system prompt fields, voice ID, difficulty level, opening line. Source of truth is git. To add or edit, edit JSON and restart server.
 
-### App Size Budget
+### 8.7 Local SQLite schema
 
-| Component | Size |
-|---|---|
-| React Native app bundle | ~30MB |
-| Scenario content (2 languages × 6 scenarios) | ~3MB |
-| Gemma 4 model (quantized) | ~2–4GB |
-| **Total (post-model download)** | **~2.5–4.5GB** |
+```
+sessions    — id, scenario_id, started_at, ended_at, transcript_json, status
+reviews     — session_id, score, pronunciation_notes, vocab_used, etiquette_notes
+progress    — scenario_id, completed_at, best_score
+```
 
-This is significant. The first-launch model download must be clearly communicated and ideally happens over WiFi. After that, the app is self-contained.
+No `users` table. When v1 adds auth, `user_id` columns get added and existing rows backfill with the original user's ID.
 
-## 9. Success Metrics
+### 8.8 The grading call
 
-**North star:** Scenario completion rate. What percentage of users who start a roleplay finish it and reach the review screen?
+Triggered after `endSession`. Server has the full transcript from Pipecat's context aggregator. Sends to Claude Sonnet with: transcript, scenario vocab, cultural tip, character goal, learner goal, difficulty level, structured-output rubric.
 
-**Supporting metrics:**
-- **Model download completion:** Percentage of installers who finish the initial Gemma 4 download. This is the first and highest-risk drop-off point.
-- **Retention:** Day 1, Day 7, Day 30 return rates (measured locally; opt-in anonymous telemetry only).
-- **Progression depth:** Average highest scenario reached per language pair.
-- **Session length:** Time in Active Roleplay per session.
-- **Streak consistency:** Percentage of users maintaining a 3+ day streak.
-- **Inference latency:** P50 and P95 Gemma 4 response times on target devices. Must stay under 2 seconds for conversational feel.
-- **Qualitative:** Post-session prompt ("Did this feel like a real conversation?" — 1 to 5). Stored locally.
+Returns JSON: score (0-100), per-turn pronunciation flags, vocabulary deployment list, etiquette observations.
 
-**Anti-metrics (watch for negative signals):**
-- High abandon rate during roleplay (suggests frustration, model quality, or latency issues).
-- Users skipping the Briefing screen (suggests it's not adding value).
-- Score inflation (if everyone scores 90%+, the grading prompt needs calibration).
-- Model download abandonment (suggests size concern — may need smaller quantization).
+Why Claude (not Gemini) for grading: reasoning over multi-turn transcripts with pedagogical nuance is Claude's strength. Latency is irrelevant here — the user is on a loading screen for 3-5 seconds. Worth re-evaluating in v1 if Gemini's grading quality catches up.
 
+### 8.9 Cost model (v0, single user)
+
+- Gemini Live native audio: priced per minute of conversation, several times the cost of pipelined alternatives. ~$0.50-0.80 per scenario.
+- Claude grading: ~$0.03-0.05 per scenario.
+- Server VM: ~$5-10/month.
+- **Estimated cost per completed scenario: ~$0.55-0.85.**
+- **Monthly burn at 3 scenarios/day: ~$50-80.**
+
+Affordable for one-user v0. For v1 multi-user, this cost scales linearly and matters — likely the trigger to migrate to Sarvam-pipelined for cost optimization.
+
+### 8.10 Vendor risk and migration strategy
+
+Single-vendor dependency mitigated architecturally:
+
+- **Pipecat abstracts services.** If Gemini Live deprecates a model (Google literally did this in March 2026 with `gemini-live-2.5-flash-preview-native-audio-09-2025`), update one import + voice config in `bot.py`. Pipeline structure unchanged.
+- **Fallback path documented.** Whisper STT + Claude LLM + ElevenLabs TTS as a three-line swap in the pipeline definition. Same Pipecat pipeline shape.
+- **Scenario content lives in git.** No vendor dashboard, no lock-in.
+- **Conversation transcripts stored in your SQLite.** No vendor lock for data.
+
+If Gemini Live becomes unreliable in the first two weeks of building, fall back without rewriting the app.
+
+### 8.11 Risks specific to this architecture
+
+- **Connectivity dependency.** WebRTC drop mid-conversation is the worst UX. Pipecat handles reconnection; client must surface "reconnecting" state clearly. Test on real Bangalore 4G in real auto rickshaws — your target environment.
+- **Self-hosting Pipecat means you're on call.** For one user, fine. For v1, consider Pipecat Cloud or Daily Bots for managed hosting.
+- **Gemini Live model deprecation.** Google moves fast and removes models with short notice. Pin to a specific model version, monitor deprecation announcements.
+- **No telemetry.** You're the user; you'll know what's broken because you'll experience it. v1 needs PostHog or equivalent before the second user is added.
+
+---
+
+## 9. Success Metrics (v0)
+
+v0 has one user. Quantitative metrics matter less than qualitative judgment.
+
+**Did the loop work for me?**
+- Did I complete all 6 scenarios?
+- Did I want to repeat scenarios, or did once feel like enough?
+- Did I actually learn Kannada I could use in the real world? *Test: did I successfully use a phrase from the app in a real auto/chai/dukaan situation?*
+- Did the conversations feel like conversations, or did they feel like menu navigation?
+
+**Did the technical pipeline hold up?**
+- P50 turn latency under 1.0s in real use.
+- P95 turn latency under 1.8s.
+- WebRTC drop rate under 2%.
+- Gemini Live Kannada voice quality acceptable for all 6 scenarios.
+
+**What did each screen contribute?**
+- Did the Briefing change how I performed in Roleplay?
+- Did the Warm-Up actually warm me up, or did I skip it?
+- Did the Review feedback change my behavior in the next scenario?
+
+These are explicitly subjective and explicitly mine. v1 metrics get formalized when there are multiple users.
+
+**v1 graduation criteria.** v0 is "successful" — and worth building v1 on top of — if: (a) you completed all 6 scenarios, (b) you used at least 3 phrases in real Bangalore situations, (c) you would honestly recommend it to a friend learning Kannada. Anything less means iterating on v0 before scaling.
+
+---
 
 ## 10. Build Order
 
-**Phase 1 — Foundation (Weeks 1–2)**
-1. React Native project setup (Expo or bare workflow — decide based on native module needs for Gemma 4).
-2. Gemma 4 integration: native module bridge, model loading, basic text inference on-device.
-3. Onboarding flow: narrative screen, language selection, name input. Local persistence.
-4. The Pathway (Home) screen: layout, colors, typography (Eczar + DM Sans), node/timeline system, navigation.
+**Phase 1 — Pipeline first, no UI (week 1)**
+1. Gemini API key. Test the Live API directly via Google AI Studio for Kannada quality.
+2. Pipecat server: hello-world pipeline with Gemini Live for Kannada. Talk to it via Pipecat's CLI tool.
+3. Validate end-to-end latency in your actual location and network.
+4. Test fallback path: swap to Whisper + Claude + ElevenLabs in the pipeline, confirm it works.
 
-**Phase 2 — Content Screens (Weeks 3–4)**
-4. Scenario Briefing screen: card surfaces, border patterns, chip components, cultural tip card.
-5. Vocab Warm-Up screen: card carousel, listen/repeat micro-drill, STT integration for repeat-back.
-6. Scenario content authoring: system prompts, vocabulary, cultural tips for all 12 scenarios (6 Hindi, 6 Kannada).
-7. Language pair selection flow.
+*If Phase 1 doesn't produce a sub-1.5s P50 conversation in Kannada, stop and reassess before building UI.*
 
-**Phase 3 — Core Loop (Weeks 5–7)**
-8. Active Roleplay screen: minimal layout, voice visualizer, transcription display, mic interaction.
-9. On-device STT integration (OS-level + Whisper.cpp fallback).
-10. On-device TTS integration (OS-level, evaluate quality).
-11. End-to-end voice loop: speak → STT → Gemma 4 → TTS → playback.
+**Phase 2 — RN client connecting (week 2)**
+5. Expo dev build set up.
+6. Pipecat React Native SDK integrated; connect to Phase 1 server.
+7. Single screen: tap to start → talk to bot → hear response. No design yet, just the loop.
+8. Validate latency on actual mobile, in actual Bangalore network conditions.
 
-**Phase 4 — Feedback & Polish (Weeks 8–9)**
-12. After-Action Review screen: score ring, feedback cards, correction highlights.
-13. Grading prompt engineering and testing.
-14. Model download flow (first-launch experience, progress UI, WiFi detection).
-15. Community scenario sync (GitHub Pages index fetch, local caching).
-16. Support the Developer screen.
+**Phase 3 — Content + scenario screens (week 3)**
+9. JSON content for all 6 scenarios.
+10. Pathway, Briefing, Warm-Up screens — built against the design system.
+11. Active Roleplay screen with proper pulse, transcript, motion.
+12. Briefing → Warm-Up → Roleplay transitions wired up with spring motion.
 
-**Phase 5 — Device Testing (Week 10)**
-17. Performance profiling on 5 target Android devices.
-18. Latency optimization, quantization tuning.
-19. Bug fixes, edge cases, store submission prep.
+**Phase 4 — Grading and Review (week 4)**
+13. Claude grading endpoint on Pipecat server.
+14. Grading prompt engineered against 5 sample transcripts of yours.
+15. After-Action Review screen with score ring, feedback cards, sage success states.
+16. Latency profiling — instrument turn-by-turn timings, validate P50/P95 targets.
 
-## 11. Future Roadmap (Post-v0)
+**Phase 5 — Daily use and iteration (weeks 5-8)**
+17. Use the app daily. Keep notes on what's broken, annoying, working.
+18. Iterate on agent prompts, voice choices, briefing content, grading prompt.
+19. Decide based on real evidence: is this worth adding auth + cloud + multi-user (v1), or is the core loop not compelling enough?
 
-- **v1:** Tamil and Marathi language pairs. Spaced repetition for vocabulary review. 15+ scenarios per language. Community repo gains traction.
-- **v1.5:** Scenario editor tool (simple web app) so non-technical contributors can author scenarios without writing JSON by hand. Community moderation pipeline.
-- **v2:** Regional dialect support within languages. Smaller/faster on-device models as they become available. Conversation memory across scenarios (AI characters remember you). Possible wearable integration for hands-free practice.
+---
+
+## Appendix A — Decisions made during PRD authoring
+
+A record of the major decisions and what they replaced, so v1 has context:
+
+- **Voice engine:** Started as on-device Gemma, then ElevenLabs Conversational AI, then Sarvam-via-Pipecat, finally Gemini Live via Pipecat. Decided empirically after testing Gemini Live's Kannada quality directly.
+- **Language pair:** Started as Hindi-Kannada and French-English dual, then French-only, finally Kannada-for-English-only. Driven by founder-as-user insight (you're in Bangalore learning Kannada).
+- **Architecture philosophy:** Started as offline-first with on-device models, finally cloud-based with Gemini Live. The "offline moat" was abandoned because the actual moat is curriculum and feel, not connectivity.
+- **Auth and accounts:** Originally planned Supabase from day one, finally local SQLite with no auth. Single-user v0 doesn't need multi-tenancy.
+- **Design direction:** Started as terracotta + saffron (India-coded), finally bone + sage + ink (Studio Calm). The original palette was designed for the migrant-focused product; the new palette is for a tool the user lives with daily.
+- **Mobile vs web:** Confirmed as React Native mobile from day one. The app is used in real situations (autos, markets, dukaans) — phone is the right form factor.
+
+These decisions shouldn't be re-litigated for v0. They should be reconsidered for v1 with real usage data.
