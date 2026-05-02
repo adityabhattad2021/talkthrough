@@ -3408,6 +3408,7 @@ name = "server"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "google-genai" },
     { name = "pipecat-ai", version = "0.0.108", source = { registry = "https://pypi.org/simple" }, extra = ["google", "runner", "webrtc"], marker = "python_full_version < '3.11'" },
     { name = "pipecat-ai", version = "1.1.0", source = { registry = "https://pypi.org/simple" }, extra = ["google", "runner", "webrtc"], marker = "python_full_version >= '3.11'" },
 ]
@@ -3419,7 +3420,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pipecat-ai", extras = ["google", "runner", "silero", "webrtc"] }]
+requires-dist = [
+    { name = "google-genai", specifier = ">=1.30.0" },
+    { name = "pipecat-ai", extras = ["google", "runner", "silero", "webrtc"] },
+]
 
 [package.metadata.requires-dev]
 dev = [
