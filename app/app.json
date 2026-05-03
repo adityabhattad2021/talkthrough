@@ -10,7 +10,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.adityabhattad.talkthrough"
+      "bundleIdentifier": "com.adityabhattad.talkthrough",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "voip"
+        ]
+      }
     },
     "android": {
       "package": "com.adityabhattad.talkthrough",
@@ -28,6 +33,25 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "@daily-co/config-plugin-rn-daily-js",
+        {
+          "enableCamera": false,
+          "enableMicrophone": true,
+          "enableScreenShare": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {

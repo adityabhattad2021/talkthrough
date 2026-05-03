@@ -1,4 +1,4 @@
-.PHONY: help install start android ios prebuild clean watchman
+.PHONY: help install start android ios prebuild clean watchman reverse-android unreverse-android
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,8 @@ help:
 	@echo "  make ios        - build and run the iOS dev client"
 	@echo "  make prebuild   - regenerate native ios/android folders"
 	@echo "  make clean      - regenerate native folders from scratch"
+	@echo "  make reverse-android - forward Android localhost:7860 to your computer's localhost:7860"
+	@echo "  make unreverse-android - remove Android localhost:7860 reverse forwarding"
 	@echo "  make watchman   - reset Watchman if Metro shows recrawl warnings"
 
 install:
@@ -27,6 +29,12 @@ prebuild:
 
 clean:
 	npx expo prebuild --clean
+
+reverse-android:
+	adb reverse tcp:7860 tcp:7860
+
+unreverse-android:
+	adb reverse --remove tcp:7860
 
 watchman:
 	watchman watch-del '/Users/adityabhattad/Desktop/Github/talkthrough' || true

@@ -1,19 +1,5 @@
-import { Text, View, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RoleplayDebugScreen } from "../features/roleplay/RoleplayDebugScreen";
 
 export default function Index() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text>Edit src/app/index.tsx to edit this screen.</Text>
-    </SafeAreaView>
-  );
+  return <RoleplayDebugScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
