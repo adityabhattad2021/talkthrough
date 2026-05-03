@@ -1,50 +1,46 @@
-# Welcome to your Expo app 👋
+# TalkThrough App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is the React Native app for TalkThrough, built with Expo SDK 55 and Expo Router.
 
-## Get started
+## Important defaults
 
-1. Install dependencies
+- This project uses Expo SDK 55, so the React Native New Architecture is enabled by default.
+- We keep `"newArchEnabled": true` in [app.json](/Users/adityabhattad/Desktop/Github/talkthrough/app/app.json) to make that explicit for future contributors, even though SDK 55 already defaults to it.
+- This app should be run with a development build, not Expo Go, because we will add native realtime voice dependencies.
 
-   ```bash
-   npm install
-   ```
+## Common commands
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+From [/Users/adityabhattad/Desktop/Github/talkthrough/app](/Users/adityabhattad/Desktop/Github/talkthrough/app):
 
 ```bash
-npm run reset-project
+make help
+make install
+make android
+make ios
+make start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Recommended first-run flow:
 
-## Learn more
+```bash
+make install
+make android
+make start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Or on iOS:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+make install
+make ios
+make start
+```
 
-## Join the community
+## What each command does
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `make install`: installs npm dependencies
+- `make android`: builds and installs the Android development client
+- `make ios`: builds and installs the iOS development client
+- `make start`: starts the Expo dev server for the installed development client
+- `make clean`: regenerates native folders from scratch if native config changes
+- `make watchman`: clears common Watchman recrawl warnings
