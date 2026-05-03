@@ -376,7 +376,10 @@ DEBUG_CLIENT_HTML = """<!doctype html>
         </div>
         <div class="card">
           <label for="language">Language</label>
-          <input id="language" value="Marathi" />
+          <select id="language">
+            <option value="marathi">Marathi</option>
+            <option value="kannada">Kannada</option>
+          </select>
         </div>
         <div class="card">
           <label>&nbsp;</label>
@@ -631,7 +634,7 @@ DEBUG_CLIENT_HTML = """<!doctype html>
             requestData: {
               body: {
                 scenario_id: scenarioIdEl.value,
-                language: languageEl.value.trim() || "Marathi",
+                language: languageEl.value.trim() || "marathi",
               },
             },
           });

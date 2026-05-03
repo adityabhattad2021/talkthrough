@@ -25,6 +25,7 @@ from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
 
 from src.config import Settings, load_settings
 from src.conversation_helper import ConversationHelper
+from src.languages import Language, get_language
 from src.prompts import build_character_system_prompt
 from src.rtvi import send_helper_message, send_session_complete_message
 from src.scenarios import Scenario, get_scenario
@@ -33,7 +34,7 @@ from src.scenarios import Scenario, get_scenario
 @dataclass
 class SessionState:
     scenario: Scenario
-    language: str
+    language: Language
     conversation_lines: list[str] = field(default_factory=list)
     completed: bool = False
 
@@ -79,9 +80,9 @@ async def _run_session(
     transport: BaseTransport,
     settings: Settings,
     scenario: Scenario,
-    language: str,
+    language: Language,
 ) -> None:
-    logger.info(f"Starting roleplay session for scenario={scenario.id} language={language}")
+    logger.info(f"Starting roleplay session for scenario={scenario.id} language={language.id}")
 
     llm = GeminiLiveLLMService(
         api_key=settings.google_api_key,
@@ -219,7 +220,7 @@ async def bot_main(runner_args: RunnerArguments):
 
     request_data = _extract_request_data(runner_args.body)
     scenario = get_scenario(request_data.get("scenario_id"))
-    language = request_data.get("language") or scenario.default_language
+    language = get_language(request_data.get("language") or scenario.default_language_id)
 
     await _run_session(
         transport=transport,

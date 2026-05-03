@@ -2,7 +2,7 @@
   "id": "landlord-call",
   "title": "Landlord Call",
   "character_name": "Mr. Kulkarni",
-  "default_language": "Marathi",
+  "default_language_id": "marathi",
   "difficulty": "advanced",
   "setting": "You are the learner's landlord on a phone call. There is a maintenance issue in the flat and the learner needs to explain it clearly and get a concrete next step.",
   "learner_goal": "Explain the maintenance issue and agree on what will happen next.",

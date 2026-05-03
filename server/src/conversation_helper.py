@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types
 
 from src.config import Settings
+from src.languages import Language
 from src.prompts import build_helper_input, build_helper_system_prompt
 from src.scenarios import Scenario
 
@@ -35,7 +36,7 @@ class ConversationHelper:
         self,
         *,
         scenario: Scenario,
-        language: str,
+        language: Language,
         conversation_lines: list[str],
         assistant_line: str,
     ) -> ConversationHelperResult:
@@ -50,7 +51,7 @@ class ConversationHelper:
     def _analyze_turn_sync(
         self,
         scenario: Scenario,
-        language: str,
+        language: Language,
         conversation_lines: list[str],
         assistant_line: str,
     ) -> ConversationHelperResult:

@@ -16,7 +16,7 @@ class Scenario:
     id: str
     title: str
     character_name: str
-    default_language: str
+    default_language_id: str
     setting: str
     learner_goal: str
     vocabulary_studied: list[str]
@@ -30,7 +30,7 @@ def _scenario_from_dict(data: dict) -> Scenario:
         id=str(data["id"]),
         title=str(data["title"]),
         character_name=str(data["character_name"]),
-        default_language=str(data["default_language"]),
+        default_language_id=str(data["default_language_id"]),
         setting=str(data["setting"]),
         learner_goal=str(data["learner_goal"]),
         vocabulary_studied=[str(item) for item in data["vocabulary_studied"]],

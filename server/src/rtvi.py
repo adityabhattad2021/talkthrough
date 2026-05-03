@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from src.conversation_helper import ConversationHelperResult
+from src.languages import Language
 
 
-async def send_helper_message(rtvi, *, language: str, character_name: str, result: ConversationHelperResult):
+async def send_helper_message(rtvi, *, language: Language, character_name: str, result: ConversationHelperResult):
     await rtvi.send_server_message(
         {
             "type": "helper_result",
             "data": {
-                "language": language,
+                "language": language.display_name,
+                "languageId": language.id,
                 "characterName": character_name,
                 "translation": result.translation,
                 "suggestions": [
@@ -29,7 +31,7 @@ async def send_helper_message(rtvi, *, language: str, character_name: str, resul
 async def send_session_complete_message(
     rtvi,
     *,
-    language: str,
+    language: Language,
     character_name: str,
     outcome: str,
     transcript: list[str],
@@ -39,7 +41,8 @@ async def send_session_complete_message(
         {
             "type": "session_complete",
             "data": {
-                "language": language,
+                "language": language.display_name,
+                "languageId": language.id,
                 "characterName": character_name,
                 "outcome": outcome,
                 "reason": reason,

@@ -2,7 +2,7 @@
   "id": "pharmacy",
   "title": "Pharmacy",
   "character_name": "Pharmacist",
-  "default_language": "Marathi",
+  "default_language_id": "marathi",
   "difficulty": "intermediate",
   "setting": "You are a pharmacist behind the counter. The learner needs to describe a simple health issue and understand basic dosage instructions.",
   "learner_goal": "Describe symptoms, get the right medicine, and understand how to take it.",

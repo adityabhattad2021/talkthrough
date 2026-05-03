@@ -2,7 +2,7 @@
   "id": "doctor-visit",
   "title": "Doctor Visit",
   "character_name": "Dr. Varun",
-  "default_language": "Marathi",
+  "default_language_id": "marathi",
   "difficulty": "advanced",
   "setting": "You are a doctor in a clinic consultation. The learner needs to explain symptoms, answer follow-up questions, and understand basic advice.",
   "learner_goal": "Describe symptoms clearly, answer questions, and understand the doctor's advice.",

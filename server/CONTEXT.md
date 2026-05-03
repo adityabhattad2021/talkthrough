@@ -169,6 +169,13 @@ It is a developer tool, not final product UI.
 - `src/config.py`
   - env vars and defaults
 
+### Language content
+
+- `src/languages.py`
+  - language loader and `Language` dataclass
+- `server/languages/*.json`
+  - actual language metadata files
+
 ### Scenario content
 
 - `src/scenarios.py`
@@ -204,7 +211,7 @@ It is a developer tool, not final product UI.
 ## What Happens In One Session
 
 1. Client connects through Pipecat SmallWebRTC.
-2. Client sends `requestData`, including scenario and language.
+2. Client sends `requestData`, including scenario and language id.
 3. Server creates the live Pipecat pipeline.
 4. Live model starts roleplay and speaks first.
 5. User speaks.
@@ -359,6 +366,7 @@ Start here:
 - `src/session.py`
   - `_extract_request_data`
   - `bot_main`
+- `src/languages.py`
 - `src/scenarios.py`
 
 ### "The live audio pipeline is broken"
@@ -478,3 +486,24 @@ So:
 
 - `src/scenarios.py` = loading logic
 - `server/scenarios/*.json` = actual scenario content
+
+## Language Storage
+
+Languages are now kept in:
+
+```text
+server/languages/
+```
+
+Each language is one JSON file.
+
+Why this is useful:
+
+- separates language metadata from runtime code
+- makes future database migration easier
+- gives us one place for language-specific notes like script and romanization guidance
+
+So:
+
+- `src/languages.py` = loading logic
+- `server/languages/*.json` = actual language metadata

@@ -2,7 +2,7 @@
   "id": "sabzi-mandi",
   "title": "Sabzi Mandi",
   "character_name": "Praveen Bhau",
-  "default_language": "Marathi",
+  "default_language_id": "marathi",
   "difficulty": "intermediate",
   "setting": "You are a vegetable seller at a busy market. The learner wants to ask prices, quantities, and bargain a little without sounding unnatural.",
   "learner_goal": "Ask for vegetable prices, choose quantity, and negotiate naturally.",

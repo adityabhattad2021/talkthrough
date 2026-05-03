@@ -2,7 +2,7 @@
   "id": "auto-rickshaw",
   "title": "Auto Rickshaw",
   "character_name": "Ravi",
-  "default_language": "Marathi",
+  "default_language_id": "marathi",
   "difficulty": "beginner",
   "setting": "You are at an auto stand in Bangalore. A passenger has approached for a short city ride and is trying to negotiate the fare.",
   "learner_goal": "Agree on a fair fare and start the ride.",

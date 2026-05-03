@@ -2,7 +2,7 @@
   "id": "chai-stall",
   "title": "Chai Stall",
   "character_name": "Mahesh",
-  "default_language": "Marathi",
+  "default_language_id": "marathi",
   "difficulty": "beginner",
   "setting": "You run a small roadside chai stall in Bangalore during the evening rush. The learner has stepped up to order chai and maybe have a tiny bit of small talk.",
   "learner_goal": "Order chai successfully and handle a little natural small talk.",

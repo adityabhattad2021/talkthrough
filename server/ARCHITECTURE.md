@@ -18,7 +18,7 @@ flowchart TD
     C --> D["src/session.py"]
 
     D --> E["Load env config<br/>src/config.py"]
-    D --> F["Resolve scenario + language<br/>src/scenarios.py"]
+    D --> F["Resolve scenario + language<br/>src/scenarios.py + src/languages.py"]
     D --> G["Build live prompt<br/>src/prompts.py"]
 
     D --> H["SmallWebRTCTransport"]
@@ -73,7 +73,7 @@ The Pipecat runner receives a WebRTC offer. The client also sends `requestData`,
 ```json
 {
   "scenario_id": "auto-rickshaw",
-  "language": "Marathi"
+  "language": "marathi"
 }
 ```
 
@@ -250,6 +250,16 @@ Change this file when:
 - changing behavior rules
 - changing learner goal or vocab list
 
+### `src/languages.py`
+
+Loads language metadata from `server/languages/`.
+
+Change this file when:
+
+- adding a new language
+- changing default language resolution
+- changing how language ids or names are normalized
+
 ### `src/prompts.py`
 
 Builds all prompts and helper inputs.
@@ -339,6 +349,9 @@ server/
 ├── README.md
 ├── bot.py
 ├── pyproject.toml
+├── languages/
+│   ├── kannada.json
+│   └── marathi.json
 ├── scenarios/
 │   ├── auto-rickshaw.json
 │   ├── chai-stall.json
@@ -350,6 +363,7 @@ server/
 └── src/
     ├── __init__.py
     ├── config.py
+    ├── languages.py
     ├── scenarios.py
     ├── prompts.py
     ├── conversation_helper.py
@@ -410,6 +424,18 @@ Then verify:
 
 - prompt still makes sense in `src/prompts.py`
 - client is sending the right `scenario_id`
+
+### Add a new language
+
+Start with:
+
+- `server/languages/<your-language>.json`
+
+Then verify:
+
+- scenarios point at the right `default_language_id`
+- prompts still read naturally in `src/prompts.py`
+- the client sends the right language id
 
 ## Current Tradeoffs
 
