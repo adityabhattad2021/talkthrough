@@ -3,17 +3,20 @@
 This is the React Native app for TalkThrough, built with Expo SDK 54 and Expo Router.
 
 For the full repo setup and day-to-day development flow, use the root README:
-- [README.md](/Users/adityabhattad/Desktop/Github/talkthrough/README.md)
+- [README.md](../README.md)
+
+For a fuller explanation of how the app works, including the current Pipecat/Daily compatibility patch:
+- [CONTEXT.md](CONTEXT.md)
 
 ## Important defaults
 
 - This project uses Expo SDK 54.
-- We keep `"newArchEnabled": true` in [app.json](/Users/adityabhattad/Desktop/Github/talkthrough/app/app.json) to make the New Architecture setting explicit for future contributors.
+- We keep `"newArchEnabled": true` in [app.json](app.json) to make the New Architecture setting explicit for future contributors.
 - This app should be run with a development build, not Expo Go, because we will add native realtime voice dependencies.
 
 ## Common commands
 
-From [/Users/adityabhattad/Desktop/Github/talkthrough/app](/Users/adityabhattad/Desktop/Github/talkthrough/app):
+From `app/`:
 
 ```bash
 make help

@@ -1,5 +1,7 @@
 .PHONY: help install start android ios prebuild clean watchman reverse-android unreverse-android
 
+ROOT_DIR := $(abspath $(CURDIR)/..)
+
 help:
 	@echo "Available commands:"
 	@echo "  make install    - install npm dependencies"
@@ -37,5 +39,5 @@ unreverse-android:
 	adb reverse --remove tcp:7860
 
 watchman:
-	watchman watch-del '/Users/adityabhattad/Desktop/Github/talkthrough' || true
-	watchman watch-project '/Users/adityabhattad/Desktop/Github/talkthrough'
+	watchman watch-del '$(ROOT_DIR)' || true
+	watchman watch-project '$(ROOT_DIR)'

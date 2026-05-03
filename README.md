@@ -21,9 +21,10 @@ talkthrough/
 ```
 
 Important docs:
-- [server/CONTEXT.md](/Users/adityabhattad/Desktop/Github/talkthrough/server/CONTEXT.md)
-- [server/ARCHITECTURE.md](/Users/adityabhattad/Desktop/Github/talkthrough/server/ARCHITECTURE.md)
-- [docs/PRD.md](/Users/adityabhattad/Desktop/Github/talkthrough/docs/PRD.md)
+- [server/CONTEXT.md](server/CONTEXT.md)
+- [server/ARCHITECTURE.md](server/ARCHITECTURE.md)
+- [app/CONTEXT.md](app/CONTEXT.md)
+- [docs/PRD.md](docs/PRD.md)
 
 ## Prerequisites
 
@@ -35,12 +36,12 @@ You should have these installed locally:
 - `adb` available in your shell if using Android
 
 You also need:
-- [server/.env](/Users/adityabhattad/Desktop/Github/talkthrough/server/.env) with a valid `GOOGLE_API_KEY`
+- `server/.env` with a valid `GOOGLE_API_KEY`
 
 Start from:
 
 ```bash
-cp /Users/adityabhattad/Desktop/Github/talkthrough/server/.env.example /Users/adityabhattad/Desktop/Github/talkthrough/server/.env
+cp server/.env.example server/.env
 ```
 
 Then fill in the API key.
@@ -50,20 +51,20 @@ Then fill in the API key.
 ### Backend
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough
+cd talkthrough
 make server-install
 ```
 
-This runs `uv sync` inside [server](/Users/adityabhattad/Desktop/Github/talkthrough/server).
+This runs `uv sync` inside `server/`.
 
 ### App
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough
+cd talkthrough
 make app-install
 ```
 
-This runs `npm install` inside [app](/Users/adityabhattad/Desktop/Github/talkthrough/app).
+This runs `npm install` inside `app/`.
 
 ## Main Commands
 
@@ -116,7 +117,7 @@ make app-ios
 Run the backend in one terminal:
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough
+cd talkthrough
 make server-dev
 ```
 
@@ -173,7 +174,7 @@ make android-unreverse
 If app native dependencies or Expo plugins changed, regenerate and rebuild:
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough/app
+cd app
 make clean
 make android
 make reverse-android
@@ -216,10 +217,10 @@ For local simulator use, `localhost:7860` is usually fine.
 
 ## App-Level Commands
 
-If you prefer working directly inside [app](/Users/adityabhattad/Desktop/Github/talkthrough/app):
+If you prefer working directly inside `app/`:
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough/app
+cd app
 make help
 ```
 
@@ -236,10 +237,10 @@ Available there:
 
 ## Backend-Level Commands
 
-If you prefer working directly inside [server](/Users/adityabhattad/Desktop/Github/talkthrough/server):
+If you prefer working directly inside `server/`:
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough/server
+cd server
 uv sync
 uv run bot.py
 ```
@@ -324,4 +325,3 @@ Run:
 cd /Users/adityabhattad/Desktop/Github/talkthrough/app
 make watchman
 ```
-

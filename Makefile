@@ -1,6 +1,6 @@
 .PHONY: help server-install server-dev server-check android-check android-reverse android-unreverse android-ready app-install app-start app-android app-ios doctor
 
-ROOT_DIR := /Users/adityabhattad/Desktop/Github/talkthrough
+ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SERVER_DIR := $(ROOT_DIR)/server
 APP_DIR := $(ROOT_DIR)/app
 BACKEND_PORT ?= 7860
