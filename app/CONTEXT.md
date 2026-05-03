@@ -4,22 +4,34 @@ This document explains how the React Native app works today, why it is structure
 
 ## What This App Does
 
-The app is a React Native client for the TalkThrough Pipecat server.
+The app now has two main responsibilities:
+
+- render the user-facing home screen where practice scenarios are surfaced
+- connect to the Pipecat backend for live roleplay sessions
+
+Today, the home screen is implemented with a small feature module and mock repository data, but it is intentionally shaped so that later we can swap in:
+
+- backend-fetched home payloads
+- local SQLite or AsyncStorage-backed cached state
+- synced backend + local fallback
+
+The roleplay layer is still the realtime part of the app.
 
 Its job is to:
 - connect to the Python Pipecat backend over Small WebRTC
-- start a live roleplay session
+- start a live voice roleplay session
 - receive custom server messages for:
   - translation
   - suggestions
   - completion/judge output
-- display the conversation state in the UI
+- display conversation state in the UI
 
-The backend does the heavy lifting:
-- live Gemini voice conversation
+The backend does the heavy lifting for the live session:
+- Gemini voice conversation
 - helper model call for translation, suggestions, and completion judgment
 
 The app is mainly responsible for:
+- home screen rendering and local interaction state
 - connection setup
 - microphone/media initialization
 - listening to Pipecat callbacks
@@ -41,15 +53,17 @@ flowchart LR
 
 In plain English:
 
-1. The user taps connect in the app.
-2. The app creates a Pipecat client.
-3. The Pipecat client connects to the backend through Small WebRTC.
-4. The backend runs the live voice roleplay.
-5. After each assistant turn, the backend sends extra structured data back:
+1. The user lands on the home screen.
+2. The app loads a home payload through the home repository layer.
+3. The user selects a scenario and difficulty.
+4. The app will eventually hand that selection off to the roleplay flow.
+5. The Pipecat client connects to the backend through Small WebRTC.
+6. The backend runs the live voice roleplay.
+7. After each assistant turn, the backend sends extra structured data back:
    - translation
    - suggestions
    - judge/completion state
-6. The app updates the UI.
+8. The app updates the UI.
 
 ## Current File Structure
 
@@ -66,9 +80,20 @@ app/
 │   │   ├── _layout.tsx
 │   │   └── index.tsx
 │   ├── features/
+│   │   ├── home/
+│   │   │   ├── components/
+│   │   │   ├── data/
+│   │   │   ├── hooks/
+│   │   │   ├── model/
+│   │   │   └── HomeScreen.tsx
 │   │   └── roleplay/
 │   │       ├── options.ts
 │   │       └── RoleplayDebugScreen.tsx
+│   ├── theme/
+│   │   ├── colors.ts
+│   │   ├── radius.ts
+│   │   ├── spacing.ts
+│   │   └── typography.ts
 │   └── lib/
 │       └── pipecat/
 │           ├── client.ts
@@ -110,12 +135,105 @@ If the whole app needs a provider later, this is a likely place for it.
 
 Entry screen route.
 
-Right now it just renders the debug roleplay screen.
+Right now it renders the app home screen:
+- [src/features/home/HomeScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/home/HomeScreen.tsx)
 
-Later this can become:
-- a home screen
-- a scenario list
-- or a router redirect
+This route should stay thin.
+
+Good uses for this file:
+- render the current top-level screen
+- redirect once we add onboarding or auth gates
+
+Bad uses for this file:
+- large UI trees
+- business logic
+- data fetching details
+
+### [src/features/home/HomeScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/home/HomeScreen.tsx)
+
+Current user-facing home screen.
+
+It is responsible for:
+- loading home data through `useHomeData()`
+- rendering loading and error states
+- rendering the dashboard-style home layout
+- coordinating the scenario sheet and settings sheet
+
+It should remain an orchestration file.
+
+Keep out of this file when possible:
+- hardcoded mock datasets
+- reusable subcomponent markup
+- repository implementation details
+
+### `src/features/home/model/*`
+
+The home domain types live here.
+
+This is where we define:
+- `HomeData`
+- `ScenarioSummary`
+- `DifficultyOption`
+- language and user profile shapes
+
+This layer matters because the home UI should depend on stable domain types, not on ad hoc backend responses.
+
+### `src/features/home/data/*`
+
+Repository boundary for the home screen.
+
+Today:
+- `homeRepository.ts` defines the contract
+- `homeRepository.mock.ts` provides mock data
+
+Later this is where we can add:
+- API-backed repository implementations
+- local database readers
+- sync-aware composition
+
+The goal is to keep backend refactors localized to this layer.
+
+### `src/features/home/hooks/*`
+
+Small hooks for the home feature.
+
+Today:
+- `useHomeData()` loads the home payload
+- `useHomeScreenState()` manages ephemeral UI state such as:
+  - selected scenario
+  - selected difficulty
+  - sheet visibility
+
+This separation is intentional:
+- repository-backed data is one concern
+- temporary UI state is another
+
+### `src/features/home/components/*`
+
+Small presentational pieces for the home screen.
+
+The current split includes:
+- header
+- intro copy
+- featured scenario card
+- scenario grid and tiles
+- difficulty picker
+- scenario sheet
+- settings sheet
+
+These files should stay prop-driven and easy to read.
+
+### [src/theme/colors.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/colors.ts), [radius.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/radius.ts), [spacing.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/spacing.ts), [typography.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/typography.ts)
+
+Shared design tokens derived from the design system in [docs/DESIGN.md](/Users/adityabhattad/Desktop/Github/talkthrough/docs/DESIGN.md).
+
+Use these files for:
+- palette values
+- spacing scale
+- radius values
+- text styles
+
+Avoid scattering raw token values across feature files unless there is a very local one-off reason.
 
 ### [src/features/roleplay/RoleplayDebugScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/roleplay/RoleplayDebugScreen.tsx)
 
@@ -138,6 +256,8 @@ If business logic starts growing here, move it into:
 - the hook
 - helper functions
 - a dedicated state layer
+
+This screen is no longer the app entry point, but it is still useful as an integration and debugging surface while the production roleplay flow is being built.
 
 ### [src/features/roleplay/options.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/roleplay/options.ts)
 

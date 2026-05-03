@@ -1,5 +1,5 @@
-import { RoleplayDebugScreen } from "../features/roleplay/RoleplayDebugScreen";
+import { HomeScreen } from "../features/home/HomeScreen";
 
 export default function Index() {
-  return <RoleplayDebugScreen />;
+  return <HomeScreen />;
 }

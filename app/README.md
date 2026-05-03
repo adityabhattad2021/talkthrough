@@ -26,6 +26,8 @@ make ios
 make start
 make reverse-android
 make unreverse-android
+make reverse-devserver-android
+make unreverse-devserver-android
 ```
 
 Recommended first-run flow:
@@ -54,5 +56,32 @@ make start
 - `make start`: starts the Expo dev server for the installed development client
 - `make clean`: regenerates native folders from scratch if native config changes
 - `make reverse-android`: forwards Android `localhost:7860` to your computer's `localhost:7860`
-- `make unreverse-android`: removes the Android reverse port forwarding
+- `make unreverse-android`: removes the Android Pipecat reverse port forwarding
+- `make reverse-devserver-android`: forwards Android Metro / Expo dev-server ports (`8081`, `19000`, `19001`) to your computer
+- `make unreverse-devserver-android`: removes the Android Metro / Expo dev-server reverse port forwarding
 - `make watchman`: clears common Watchman recrawl warnings
+
+## Android networking notes
+
+If your Android phone and laptop are not on the same network, the app will usually fail to reach the Expo / Metro dev server over LAN.
+
+In that case, use USB reverse for the dev server:
+
+```bash
+make reverse-devserver-android
+make start
+```
+
+If you also need the local Pipecat server on port `7860`, run:
+
+```bash
+make reverse-android
+```
+
+Typical Android dev flow when using USB:
+
+```bash
+make reverse-devserver-android
+make reverse-android
+make start
+```
