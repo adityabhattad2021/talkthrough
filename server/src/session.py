@@ -42,7 +42,10 @@ def _extract_request_data(body: Any) -> dict[str, Any]:
     if body is None:
         return {}
     if isinstance(body, dict):
-        return body.get("request_data") or body.get("requestData") or {}
+        nested = body.get("request_data") or body.get("requestData")
+        if isinstance(nested, dict):
+            return nested
+        return body
 
     request_data = getattr(body, "request_data", None)
     if request_data is not None:

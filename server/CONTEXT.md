@@ -172,7 +172,9 @@ It is a developer tool, not final product UI.
 ### Scenario content
 
 - `src/scenarios.py`
-  - behavior, opening line, vocab, goal
+  - scenario loader and `Scenario` dataclass
+- `server/scenarios/*.json`
+  - actual scenario content files
 
 ### Prompt construction
 
@@ -322,6 +324,7 @@ Contains:
 
 Start here:
 
+- `server/scenarios/*.json`
 - `src/scenarios.py`
 - `src/prompts.py`
 
@@ -453,3 +456,25 @@ So these affect responsiveness a lot:
 3. `src/conversation_helper.py`
 4. `src/prompts.py`
 5. `src/debug_client.py`
+
+## Scenario Storage
+
+Scenarios are now kept in:
+
+```text
+server/scenarios/
+```
+
+Each scenario is one JSON file.
+
+Why this is better than hardcoding scenarios in Python:
+
+- easier to add or edit content without touching runtime logic
+- cleaner separation between "content" and "code"
+- easier to migrate later into a database or CMS
+- easier for future agents to reason about
+
+So:
+
+- `src/scenarios.py` = loading logic
+- `server/scenarios/*.json` = actual scenario content

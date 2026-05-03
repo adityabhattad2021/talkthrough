@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+from loguru import logger
+
+
+SCENARIOS_DIR = Path(__file__).resolve().parent.parent / "scenarios"
+DEFAULT_SCENARIO_ID = "auto-rickshaw"
 
 
 @dataclass(frozen=True)
@@ -14,67 +22,49 @@ class Scenario:
     vocabulary_studied: list[str]
     opening_line: str
     behavior_prompt: str
+    difficulty: str
 
 
-AUTO_RICKSHAW = Scenario(
-    id="auto-rickshaw",
-    title="Auto Rickshaw",
-    character_name="Ravi",
-    default_language="Marathi",
-    setting="You are at an auto stand. A passenger has approached for a short city ride negotiation.",
-    learner_goal="Agree on a fair fare and start the ride.",
-    vocabulary_studied=[
-        "Kuthe jaycha aahe?",
-        "Kiti honar?",
-        "Jast aahe",
-        "Meter lava",
-        "DiDshe dete",
-        "Thik aahe, chala",
-    ],
-    opening_line="कुठे जायचं आहे?",
-    behavior_prompt="""# Auto Rickshaw — Medium Difficulty (v2)
-
-You are Ravi, an auto rickshaw driver in Bangalore. Mid-40s, fifteen years driving. You're at an auto stand. A passenger has approached.
-
-You're a working man, not a teacher, not an AI. Slightly tired, fair, expects to negotiate.
-
-## Hard rules
-
-1. **Speak only in the configured target language.** Never English. Place names ("Indiranagar") and numbers ("one-fifty") in English are fine — that's natural in city speech.
-2. **Stay in character.** If asked "are you AI?" respond confused, like Ravi.
-3. **Short replies.** One sentence. Two max. Never explain, never lecture.
-4. **Never compliment their language.** Just respond to what was said.
-5. **Never accept what you don't understand.** If their input isn't understandable in the target language or simple English, respond with confusion and ask them to repeat clearly.
-
-## Negotiation logic
-
-Your job: get a fair fare and start the ride.
-
-- For Indiranagar from this stand: real fare ~₹150. You quote ₹200 first.
-- If they counter with a real number near 150, accept after one round of pushback.
-- If they offer too low (₹100 or less), refuse.
-- **Hard limit: 3 negotiation exchanges.** Count the rounds where prices are discussed. After the 3rd, you either accept their last offer (if reasonable) or end the negotiation.
-
-## Terminal states
-
-Once you accept or refuse clearly, the negotiation is over:
-
-- Agreement means the ride starts. If they say thanks, give a short acknowledgment once and stop.
-- Refusal means negotiation is dead. If they come back with a new offer, you can ignore them or repeat the refusal once.
-
-## How you speak
-
-Natural, everyday city speech in the configured target language. Not formal. Use English numbers and place names naturally.
-""",
-)
+def _scenario_from_dict(data: dict) -> Scenario:
+    return Scenario(
+        id=str(data["id"]),
+        title=str(data["title"]),
+        character_name=str(data["character_name"]),
+        default_language=str(data["default_language"]),
+        setting=str(data["setting"]),
+        learner_goal=str(data["learner_goal"]),
+        vocabulary_studied=[str(item) for item in data["vocabulary_studied"]],
+        opening_line=str(data["opening_line"]),
+        behavior_prompt=str(data["behavior_prompt"]),
+        difficulty=str(data.get("difficulty", "unknown")),
+    )
 
 
-SCENARIOS = {
-    AUTO_RICKSHAW.id: AUTO_RICKSHAW,
-}
+@lru_cache(maxsize=1)
+def load_scenarios() -> dict[str, Scenario]:
+    scenarios: dict[str, Scenario] = {}
+
+    for path in sorted(SCENARIOS_DIR.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        scenario = _scenario_from_dict(data)
+        scenarios[scenario.id] = scenario
+
+    if DEFAULT_SCENARIO_ID not in scenarios:
+        raise ValueError(f"Default scenario '{DEFAULT_SCENARIO_ID}' was not found in {SCENARIOS_DIR}")
+
+    return scenarios
+
+
+def list_scenarios() -> list[Scenario]:
+    return list(load_scenarios().values())
 
 
 def get_scenario(scenario_id: str | None) -> Scenario:
+    scenarios = load_scenarios()
+    logger.info(f"Available scenarios: {list(scenarios.keys())}")
+    logger.info(f"Requested scenario ID: {scenario_id}")
     if not scenario_id:
-        return AUTO_RICKSHAW
-    return SCENARIOS.get(scenario_id, AUTO_RICKSHAW)
+        return scenarios[DEFAULT_SCENARIO_ID]
+    
+    logger.info("Scenario ID requested:", scenario_id)
+    return scenarios.get(scenario_id, scenarios[DEFAULT_SCENARIO_ID])

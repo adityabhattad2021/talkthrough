@@ -236,11 +236,11 @@ Change this file when:
 
 Contains scenario definitions.
 
-Right now it is intentionally simple:
+Right now it loads JSON scenario files from `server/scenarios/`:
 
 - one `Scenario` dataclass
-- one hardcoded `AUTO_RICKSHAW`
-- `get_scenario(...)`
+- one folder of scenario JSON files
+- cached loader functions like `load_scenarios()` and `get_scenario(...)`
 
 Change this file when:
 
@@ -339,6 +339,13 @@ server/
 ├── README.md
 ├── bot.py
 ├── pyproject.toml
+├── scenarios/
+│   ├── auto-rickshaw.json
+│   ├── chai-stall.json
+│   ├── sabzi-mandi.json
+│   ├── pharmacy.json
+│   ├── landlord-call.json
+│   └── doctor-visit.json
 ├── uv.lock
 └── src/
     ├── __init__.py
@@ -397,7 +404,7 @@ Go to:
 
 Start with:
 
-- `src/scenarios.py`
+- `server/scenarios/<your-scenario>.json`
 
 Then verify:
 
@@ -408,8 +415,8 @@ Then verify:
 
 These are intentional for now:
 
-- scenario content is hardcoded in Python, not JSON files
-  - simpler for early development
+- scenario content is in local JSON files, not a database yet
+  - simpler for early development and easy to migrate later
 - debug UI is embedded as one HTML string
   - fast to iterate, not ideal long term
 - full conversation history is sent to helper
