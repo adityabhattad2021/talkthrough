@@ -367,6 +367,11 @@ DEBUG_CLIENT_HTML = """<!doctype html>
           <label for="scenarioId">Scenario</label>
           <select id="scenarioId">
             <option value="auto-rickshaw">auto-rickshaw</option>
+            <option value="chai-stall">chai-stall</option>
+            <option value="sabzi-mandi">sabzi-mandi</option>
+            <option value="pharmacy">pharmacy</option>
+            <option value="landlord-call">landlord-call</option>
+            <option value="doctor-visit">doctor-visit</option>
           </select>
         </div>
         <div class="card">
@@ -616,16 +621,18 @@ DEBUG_CLIENT_HTML = """<!doctype html>
         judgeOutcomeEl.textContent = "outcome: in_progress";
         judgeReasonEl.textContent = "Judge output will appear here after each assistant turn.";
         log("state", "Connecting...");
-
         client = buildClient();
+
 
         try {
           const baseUrl = serverUrlEl.value.replace(/\\/$/, "");
           await client.startBotAndConnect({
             endpoint: `${baseUrl}/start`,
             requestData: {
-              scenario_id: scenarioIdEl.value,
-              language: languageEl.value.trim() || "Marathi",
+              body: {
+                scenario_id: scenarioIdEl.value,
+                language: languageEl.value.trim() || "Marathi",
+              },
             },
           });
           log("success", "startBotAndConnect() completed.");
