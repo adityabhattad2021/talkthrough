@@ -30,10 +30,9 @@ export function DifficultyPicker({
             <Pressable
               key={option.id}
               onPress={() => onSelect(option.id)}
-              style={({ pressed }) => [
+              style={[
                 styles.option,
                 selected ? styles.optionSelected : styles.optionDefault,
-                pressed && styles.pressed,
               ]}
             >
               <View style={styles.copy}>

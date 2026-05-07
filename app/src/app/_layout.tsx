@@ -3,10 +3,10 @@ import "react-native-get-random-values";
 
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import {
-  Geist_400Regular,
-  Geist_500Medium,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
   useFonts,
-} from "@expo-google-fonts/geist";
+} from "@expo-google-fonts/plus-jakarta-sans";
 import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -19,8 +19,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Geist_400Regular,
-    Geist_500Medium,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
   });
 
   useEffect(() => {

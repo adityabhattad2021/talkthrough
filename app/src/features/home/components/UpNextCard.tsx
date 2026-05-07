@@ -25,7 +25,7 @@ export function UpNextCard({
   return (
     <Pressable
       onPress={() => onPress(scenario)}
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={styles.container}
     >
       <View style={styles.headerRow}>
         <View style={styles.badge}>
@@ -97,11 +97,15 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: colors.paper,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.stone,
     borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRightColor: colors.borderSubtle,
+    borderTopColor: colors.mist,
+    borderWidth: 5,
     gap: spacing[4],
     padding: 20,
+    overflow: "hidden",
+    position: "relative",
   },
   copy: {
     gap: spacing[2],

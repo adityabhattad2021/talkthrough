@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     backgroundColor: colors.paper,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.mist,
     borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 2,
     gap: spacing[2],
     padding: 20,
   },

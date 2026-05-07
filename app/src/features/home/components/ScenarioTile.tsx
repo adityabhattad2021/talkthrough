@@ -24,7 +24,7 @@ export function ScenarioTile({
   return (
     <Pressable
       onPress={() => onPress(scenario)}
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      style={styles.container}
     >
       <View style={styles.header}>
         <ScenarioGlyph glyph={scenario.glyph} />
@@ -48,9 +48,9 @@ export function ScenarioTile({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.paper,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.mist,
     borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.5,
     gap: spacing[3],
     minHeight: 140,
     padding: 14,
