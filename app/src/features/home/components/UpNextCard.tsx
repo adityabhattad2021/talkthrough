@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     color: colors.ash,
   },
   title: {
-    ...typography.heading,
+    ...typography.title ,
     color: colors.ink,
   },
 });

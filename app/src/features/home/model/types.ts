@@ -1,10 +1,10 @@
 export type ScenarioId =
-  | "auto_rickshaw"
-  | "chai_stall"
-  | "sabzi_mandi"
+  | "auto-rickshaw"
+  | "chai-stall"
+  | "sabzi-mandi"
   | "pharmacy"
-  | "landlord_call"
-  | "doctor_visit";
+  | "landlord-call"
+  | "doctor-visit";
 
 export type DifficultyId = "easy" | "medium" | "hard";
 

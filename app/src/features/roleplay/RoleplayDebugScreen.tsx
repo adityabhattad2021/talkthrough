@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useRoleplaySession } from "../../lib/pipecat/useRoleplaySession";
 import { ROLEPLAY_LANGUAGES, ROLEPLAY_SCENARIOS } from "./options";
+import { useLocalSearchParams } from "expo-router";
 
 function ChoiceChips({
   options,
@@ -21,6 +22,7 @@ function ChoiceChips({
   selectedId: string;
   onSelect: (id: string) => void;
 }) {
+
   return (
     <View style={styles.chipRow}>
       {options.map((option) => {
@@ -48,6 +50,15 @@ export function RoleplayDebugScreen() {
   const [serverUrl, setServerUrl] = useState("http://localhost:7860");
   const [scenarioId, setScenarioId] = useState("auto-rickshaw");
   const [languageId, setLanguageId] = useState("marathi");
+  const { id } = useLocalSearchParams<{id:string}>();
+
+  useEffect(()=>{
+    if(id){
+      setScenarioId(id);
+      connect({ serverUrl, scenarioId: id, languageId });
+    }
+  }, [id])
+
 
   const canConnect = useMemo(() => {
     return (

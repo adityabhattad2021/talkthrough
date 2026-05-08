@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,19 +12,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { typography } from "@/theme/typography";
+import { useHomeData } from "@/features/home/hooks/useHomeData";
+import { HomeData } from "@/features/home/model/types";
+import { useHomeScreenState } from "@/features/home/hooks/useHomeScreenState";
+import { HomeHeader } from "@/features/home/components/HomeHeader";
+import { HomeProgressIntro } from "@/features/home/components/HomeProgressIntro";
+import { UpNextCard } from "@/features/home/components/UpNextCard";
+import { ScenarioGrid } from "@/features/home/components/ScenarioGrid";
+import { ScenarioSheet } from "@/features/home/components/ScenarioSheet";
+import { SettingsSheet } from "@/features/home/components/SettingsSheet";
+import { useRouter } from "expo-router";
 
-import { HomeHeader } from "./components/HomeHeader";
-import { HomeProgressIntro } from "./components/HomeProgressIntro";
-import { ScenarioGrid } from "./components/ScenarioGrid";
-import { ScenarioSheet } from "./components/ScenarioSheet";
-import { SettingsSheet } from "./components/SettingsSheet";
-import { UpNextCard } from "./components/UpNextCard";
-import { useHomeData } from "./hooks/useHomeData";
-import { useHomeScreenState } from "./hooks/useHomeScreenState";
-import { HomeData } from "./model/types";
 
-export function HomeScreen() {
+export default function HomeScreen() {
   const { data, error, isLoading } = useHomeData();
+  
 
   const content = useMemo(() => {
     if (isLoading) {
@@ -56,6 +57,7 @@ export function HomeScreen() {
 
 function LoadedHomeContent({ data }: { data: HomeData }) {
   const { width } = useWindowDimensions();
+  const router = useRouter();
   const {
     closeScenario,
     closeSettings,
@@ -110,10 +112,7 @@ function LoadedHomeContent({ data }: { data: HomeData }) {
         difficultyOptions={data.difficultyOptions}
         onBegin={({ difficultyId: selectedDifficultyId, scenarioId }) => {
           closeScenario();
-          Alert.alert(
-            "Scenario selected",
-            `${scenarioId} on ${selectedDifficultyId} is ready to wire into roleplay.`,
-          );
+          router.push(`/scenario/${scenarioId}/roleplay`);
         }}
         onClose={closeScenario}
         onSelectDifficulty={selectDifficulty}

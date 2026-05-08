@@ -80,10 +80,7 @@ const styles = StyleSheet.create({
     color: colors.sage500,
   },
   title: {
-    ...typography.caption,
+    ...typography.title,
     color: colors.ink,
-    fontFamily: fontFamilies.medium,
-    fontSize: 14,
-    lineHeight: 18,
   },
 });

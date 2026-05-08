@@ -10,10 +10,10 @@ const mockHomeData: HomeData = {
     label: "Kannada",
   },
   streakCount: 6,
-  recommendedScenarioId: "sabzi_mandi",
+  recommendedScenarioId: "sabzi-mandi",
   scenarios: [
     {
-      id: "auto_rickshaw",
+      id: "auto-rickshaw",
       title: "Auto Rickshaw",
       blurb: "Negotiate a fare. Give directions. Keep your cool.",
       characterName: "Ravi",
@@ -23,7 +23,7 @@ const mockHomeData: HomeData = {
       bestScore: 84,
     },
     {
-      id: "chai_stall",
+      id: "chai-stall",
       title: "Chai Stall",
       blurb: "Order a small tea. Make small talk. Pay ten rupees.",
       characterName: "Lakshmi",
@@ -33,7 +33,7 @@ const mockHomeData: HomeData = {
       bestScore: 89,
     },
     {
-      id: "sabzi_mandi",
+      id: "sabzi-mandi",
       title: "Sabzi Mandi",
       blurb: "Ask prices, count in Kannada, bargain politely.",
       characterName: "Suresh",
@@ -51,7 +51,7 @@ const mockHomeData: HomeData = {
       glyph: "pharm",
     },
     {
-      id: "landlord_call",
+      id: "landlord-call",
       title: "Landlord Call",
       blurb: "Report a maintenance issue. Agree when it gets fixed.",
       characterName: "Krishna",
@@ -60,7 +60,7 @@ const mockHomeData: HomeData = {
       glyph: "phone",
     },
     {
-      id: "doctor_visit",
+      id: "doctor-visit",
       title: "Doctor Visit",
       blurb: "Walk through medical history. Ask what you need to ask.",
       characterName: "Dr. Rao",

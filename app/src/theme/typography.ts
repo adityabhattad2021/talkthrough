@@ -3,27 +3,29 @@ import { TextStyle } from "react-native";
 import { colors } from "./colors";
 
 export const fontFamilies = {
-  regular: "Geist_400Regular",
-  medium: "Geist_500Medium",
+  regular: "PlusJakartaSans_400Regular",
+  medium: "PlusJakartaSans_500Medium",
+  semiBold: "PlusJakartaSans_600SemiBold",
+  bold: "PlusJakartaSans_700Bold",
 } as const;
 
 export const typography = {
   display: {
-    fontFamily: fontFamilies.medium,
+    fontFamily: fontFamilies.bold,
     fontSize: 32,
     lineHeight: 37,
     letterSpacing: -0.64,
     color: colors.ink,
   } satisfies TextStyle,
   heading: {
-    fontFamily: fontFamilies.medium,
+    fontFamily: fontFamilies.bold,
     fontSize: 22,
     lineHeight: 28,
     letterSpacing: -0.33,
     color: colors.ink,
   } satisfies TextStyle,
   title: {
-    fontFamily: fontFamilies.medium,
+    fontFamily: fontFamilies.semiBold,
     fontSize: 17,
     lineHeight: 23,
     letterSpacing: -0.17,
