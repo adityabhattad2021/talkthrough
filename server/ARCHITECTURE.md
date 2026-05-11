@@ -4,46 +4,95 @@ This document explains how the current `server/` works.
 
 The server has one job:
 
-1. run the live voice roleplay with Pipecat + Gemini Live
-2. after each assistant turn, call one helper model
-3. send the helper result back to the client
-4. end the session automatically when the helper decides the conversation is over
+1. serve app-facing scenario data for the mobile client
+2. run the live voice roleplay with Pipecat + Gemini Live
+3. after each assistant turn, call one helper model
+4. send the helper result back to the client
+5. end the session automatically when the helper decides the conversation is over
+
+The important distinction now is:
+
+- `/app/*` routes are the app contract
+- `/debug-client` and `/scenario-details` are developer helpers
+
+The long-term plan is for the app contract to stay stable even when scenario data moves from JSON files to a database later.
+
+## App Data Layer
+
+The server now has a small app-facing content layer in:
+
+- [src/app_data.py](src/app_data.py)
+- [src/app_routes.py](src/app_routes.py)
+
+Current app routes:
+
+- `GET /app/home`
+- `GET /app/scenarios`
+- `GET /app/scenarios/{scenario_id}`
+
+These routes are backed by the scenario JSON files today, but they are intentionally separated from debug routes so we can swap the storage backend later without changing the app payload shape.
+
+## Scenario Model
+
+Scenario content is no longer a single freeform `behavior_prompt`.
+
+Each scenario now carries:
+
+- scenario card metadata for the home screen
+- character identity and role
+- learner goal
+- pragmatic tip
+- structured vocabulary items
+- language-specific opening lines
+- character agenda
+- character personality
+- success conditions
+- failure conditions
+- difficulty overlays for `easy`, `medium`, and `hard`
+
+Difficulty is implemented as a prompt overlay, not a separate scenario. The same scenario becomes easier or harder by changing the character's patience, friction, and decision rules.
+
+For negotiation scenarios, the live prompt is now meant to be agenda-driven instead of scripted. The character should maximize their own outcome realistically, not enforce one magic answer like "accept only 150."
 
 ## High-Level Flow
 
 ```mermaid
 flowchart TD
-    A["Client / Browser / App"] -->|WebRTC offer + requestData| B["Pipecat Runner"]
-    B --> C["bot.py"]
-    C --> D["src/session.py"]
+    A["Client / Browser / App"] -->|HTTP app data fetch| B["app_routes.py"]
+    B --> C["app_data.py"]
+    C --> D["scenarios.py + languages.py"]
 
-    D --> E["Load env config<br/>src/config.py"]
-    D --> F["Resolve scenario + language<br/>src/scenarios.py + src/languages.py"]
-    D --> G["Build live prompt<br/>src/prompts.py"]
+    A -->|WebRTC offer + requestData| E["Pipecat Runner"]
+    E --> F["bot.py"]
+    F --> G["src/session.py"]
 
-    D --> H["SmallWebRTCTransport"]
-    D --> I["LLMContext + Turn Aggregators"]
-    D --> J["GeminiLiveLLMService<br/>Live speech model"]
+    G --> H["Load env config<br/>src/config.py"]
+    G --> I["Resolve scenario + language + difficulty<br/>src/scenarios.py + src/languages.py"]
+    G --> J["Build live prompt<br/>src/prompts.py"]
 
-    H --> I
-    I --> J
-    J --> H
+    G --> K["SmallWebRTCTransport"]
+    G --> L["LLMContext + Turn Aggregators"]
+    G --> M["GeminiLiveLLMService<br/>Live speech model"]
 
-    J -->|assistant audio + text turn| K["on_assistant_turn_stopped"]
-    K --> L["ConversationHelper<br/>src/conversation_helper.py"]
-    L --> M["Gemini text helper model"]
+    K --> L
+    L --> M
+    M --> K
 
-    M -->|structured JSON| L
-    L --> N["helper_result"]
-    N --> O["src/rtvi.py"]
-    O -->|RTVI custom server message| A
+    M -->|assistant audio + text turn| N["on_assistant_turn_stopped"]
+    N --> O["ConversationHelper<br/>src/conversation_helper.py"]
+    O --> P["Gemini text helper model"]
 
-    L --> P{"is_complete?"}
-    P -->|No| Q["Keep conversation going"]
-    P -->|Yes| R["session_complete"]
-    R --> O
-    O -->|RTVI custom server message| A
-    R --> S["Cancel Pipecat task after short delay"]
+    P -->|structured JSON| O
+    O --> Q["helper_result"]
+    Q --> R["src/rtvi.py"]
+    R -->|RTVI custom server message| A
+
+    O --> S{"is_complete?"}
+    S -->|No| T["Keep conversation going"]
+    S -->|Yes| U["session_complete"]
+    U --> R
+    R -->|RTVI custom server message| A
+    U --> V["Cancel Pipecat task after short delay"]
 ```
 
 ## Core Design Idea
@@ -73,11 +122,12 @@ The Pipecat runner receives a WebRTC offer. The client also sends `requestData`,
 ```json
 {
   "scenario_id": "auto-rickshaw",
-  "language": "marathi"
+  "language": "marathi",
+  "difficulty_id": "medium"
 }
 ```
 
-`src/session.py` reads that data and decides which scenario and language to use.
+`src/session.py` reads that data and decides which scenario, language, and difficulty to use.
 
 ### 2. Live pipeline starts
 
@@ -238,17 +288,35 @@ Contains scenario definitions.
 
 Right now it loads JSON scenario files from `server/scenarios/`:
 
-- one `Scenario` dataclass
-- one folder of scenario JSON files
+- one richer `Scenario` dataclass
+- vocabulary and difficulty dataclasses
+- one folder of structured scenario JSON files
 - cached loader functions like `load_scenarios()` and `get_scenario(...)`
 
 Change this file when:
 
 - adding a new scenario
 - changing default language
-- changing opening line
-- changing behavior rules
-- changing learner goal or vocab list
+- changing opening lines
+- changing agenda, personality, or difficulty rules
+- changing learner goal or vocabulary
+
+### `src/app_data.py` and `src/app_routes.py`
+
+This is the current app-facing content boundary.
+
+Responsibilities:
+
+- shape home payloads
+- shape scenario detail payloads
+- keep frontend data contracts separate from debug tooling
+- provide the seam where JSON-backed content can later become DB-backed content
+
+Change these files when:
+
+- the app needs new content fields
+- home or scenario payload shapes change
+- you want to preserve app contract stability during backend refactors
 
 ### `src/languages.py`
 

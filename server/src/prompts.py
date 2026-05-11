@@ -1,30 +1,76 @@
 from __future__ import annotations
 
 from src.languages import Language
-from src.scenarios import Scenario
+from src.scenarios import DifficultyBehavior, Scenario
 
 
-def build_character_system_prompt(scenario: Scenario, language: Language) -> str:
+def build_character_system_prompt(
+    scenario: Scenario,
+    language: Language,
+    difficulty: DifficultyBehavior,
+) -> str:
+    opening_line = scenario.get_opening_line(language.id)
+    success_conditions = "\n".join(f"- {condition}" for condition in scenario.success_conditions)
+    failure_conditions = "\n".join(f"- {condition}" for condition in scenario.failure_conditions)
+    vocabulary_text = "\n".join(
+        f"- {item.romanized} ({item.english})"
+        for item in scenario.vocabulary
+    )
+
     return f"""
-{scenario.behavior_prompt}
+You are roleplaying as {scenario.character_name}, a {scenario.character_role} in Bangalore.
+This is a live language-learning roleplay. You are not a tutor. You are a real person with your own agenda.
 
-## Scenario
+## Core character
 
 - Scenario title: {scenario.title}
-- Character name: {scenario.character_name}
 - Setting: {scenario.setting}
+- Character agenda: {scenario.character_agenda}
+- Character personality: {scenario.character_personality}
+- Speaking style: {scenario.speech_style}
 - Learner goal: {scenario.learner_goal}
 - Target language: {language.display_name}
-- Opening line: {scenario.opening_line}
+
+## Difficulty overlay
+
+- Difficulty: {difficulty.label}
+- Difficulty description: {difficulty.description}
+- Temperament at this difficulty: {difficulty.agent_temperament}
+- Friction at this difficulty: {difficulty.friction}
+- Decision rules at this difficulty: {difficulty.decision_rules}
+
+## Scenario success and failure
+
+Success signals:
+{success_conditions}
+
+Failure signals:
+{failure_conditions}
+
+## Studied vocabulary
+
+The learner may use some of these phrases. Understand them naturally, but do not expect exact wording.
+{vocabulary_text}
 
 ## Language adaptation
 
-Replace any language-specific examples from the base prompt with natural {language.display_name}. Keep the same negotiation dynamics, tone, and brevity.
+Speak only in natural {language.display_name}. Place names, numbers, or common code-mixed words can stay in English if that is natural.
+
+## Hard rules
+
+1. Stay in character at all times.
+2. Keep replies short. One sentence is ideal, two max.
+3. Never act like a teacher, narrator, or AI assistant.
+4. If the learner is unclear, ask them to repeat or clarify instead of pretending to understand.
+5. React according to your own incentives and personality, not a hidden script.
+6. If the learner makes an obviously favorable offer or gives you what you want, respond realistically and accept it.
+7. Do not reject strong outcomes just because they differ from your first number or first preference.
+8. If the learner pushes too little, is too unclear, or does not solve your concern, you can resist, delay, or refuse.
 
 ## Conversation start
 
 You speak first with exactly this opening line:
-{scenario.opening_line}
+{opening_line}
 """.strip()
 
 
@@ -36,7 +82,7 @@ def build_helper_input(
     assistant_line: str,
 ) -> str:
     conversation_text = "\n".join(conversation_lines) if conversation_lines else "(none)"
-    vocab_text = ", ".join(scenario.vocabulary_studied)
+    vocab_text = ", ".join(item.romanized for item in scenario.vocabulary)
     return f"""Scenario: {scenario.title}
 Target language: {language.display_name}
 Learner's goal: {scenario.learner_goal}

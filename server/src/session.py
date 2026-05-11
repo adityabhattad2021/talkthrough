@@ -35,6 +35,7 @@ from src.scenarios import Scenario, get_scenario
 class SessionState:
     scenario: Scenario
     language: Language
+    difficulty_id: str
     conversation_lines: list[str] = field(default_factory=list)
     completed: bool = False
 
@@ -81,8 +82,10 @@ async def _run_session(
     settings: Settings,
     scenario: Scenario,
     language: Language,
+    difficulty_id: str,
 ) -> None:
     logger.info(f"Starting roleplay session for scenario={scenario.id} language={language.id}")
+    difficulty = scenario.get_difficulty(difficulty_id)
 
     llm = GeminiLiveLLMService(
         api_key=settings.google_api_key,
@@ -90,7 +93,7 @@ async def _run_session(
             model=settings.live_model,
             voice=settings.live_voice_id,
             modalities=GeminiModalities.AUDIO,
-            system_instruction=build_character_system_prompt(scenario, language),
+            system_instruction=build_character_system_prompt(scenario, language, difficulty),
         ),
     )
 
@@ -115,7 +118,7 @@ async def _run_session(
         params=PipelineParams(enable_metrics=True, enable_usage_metrics=True),
     )
 
-    state = SessionState(scenario=scenario, language=language)
+    state = SessionState(scenario=scenario, language=language, difficulty_id=difficulty.id)
     helper = ConversationHelper(settings)
 
     @task.rtvi.event_handler("on_client_ready")
@@ -221,10 +224,12 @@ async def bot_main(runner_args: RunnerArguments):
     request_data = _extract_request_data(runner_args.body)
     scenario = get_scenario(request_data.get("scenario_id"))
     language = get_language(request_data.get("language") or scenario.default_language_id)
+    difficulty_id = str(request_data.get("difficulty_id") or "medium")
 
     await _run_session(
         transport=transport,
         settings=settings,
         scenario=scenario,
         language=language,
+        difficulty_id=difficulty_id,
     )

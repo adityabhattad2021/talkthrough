@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from loguru import logger
+import src.app_routes  # noqa: F401
 import src.debug_routes  # noqa: F401
 from src.session import bot_main
 

@@ -20,15 +20,25 @@ The app idea is:
   - suggested replies
   - automatic detection of when the scenario is complete
 
-Right now the main scenario is:
+Right now the server is set up around six Bangalore-life scenarios backed by structured JSON content.
 
-- `auto-rickshaw`
-
-The target language is configurable per session, but the currently tested setup is Marathi.
+The target language is configurable per session. Kannada is still the product direction, but Marathi remains intentionally supported for debugging and prompt iteration.
 
 ## Main Mental Model
 
-Think of the server as two layers:
+Think of the server as three layers:
+
+### Layer 0: App data
+
+This is the plain HTTP content contract used by the mobile app.
+
+It serves:
+
+- home screen payloads
+- scenario detail payloads
+- difficulty and language-aware content
+
+Today it is JSON-backed. Later it can become DB-backed without changing the app contract.
 
 ### Layer 1: Live conversation
 
@@ -106,6 +116,12 @@ In this project:
 - `Helper Model Call` generates translation, suggestions, and completion judgment
 - `RTVI Custom Messages` send helper results back to the UI
 
+Alongside the live pipeline, the app also fetches metadata over HTTP:
+
+- `GET /app/home`
+- `GET /app/scenarios`
+- `GET /app/scenarios/{id}`
+
 ## Why The Architecture Looks Like This
 
 We learned a few things during development:
@@ -152,6 +168,19 @@ The `/debug-client` page exists so we can see:
 
 It is a developer tool, not final product UI.
 
+### 4. Difficulty now lives in the prompt model
+
+Difficulty is no longer meant to be a separate scenario script.
+
+Each scenario now includes:
+
+- character agenda
+- character personality
+- success and failure conditions
+- `easy`, `medium`, and `hard` behavior overlays
+
+The important rule is that characters should act on their own incentives realistically. They should not enforce one hidden correct answer. A driver can still accept an unusually favorable fare, and a tougher difficulty should come from higher friction and sharper personality, not from broken logic.
+
 ## Current File Map
 
 ### Entry and startup
@@ -183,6 +212,13 @@ It is a developer tool, not final product UI.
 - `server/scenarios/*.json`
   - actual scenario content files
 
+### App-facing content
+
+- `src/app_data.py`
+  - shapes home and scenario payloads for the mobile app
+- `src/app_routes.py`
+  - exposes `/app/*` routes
+
 ### Prompt construction
 
 - `src/prompts.py`
@@ -205,13 +241,14 @@ It is a developer tool, not final product UI.
 
 - `src/debug_routes.py`
   - `/debug-client` route
+  - compatibility helper routes for debugging only
 - `src/debug_client.py`
   - HTML + JS debug page
 
 ## What Happens In One Session
 
 1. Client connects through Pipecat SmallWebRTC.
-2. Client sends `requestData`, including scenario and language id.
+2. Client sends `requestData`, including scenario, language id, and difficulty id.
 3. Server creates the live Pipecat pipeline.
 4. Live model starts roleplay and speaks first.
 5. User speaks.
