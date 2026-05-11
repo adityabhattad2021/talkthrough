@@ -112,7 +112,14 @@ function LoadedHomeContent({ data }: { data: HomeData }) {
         difficultyOptions={data.difficultyOptions}
         onBegin={({ difficultyId: selectedDifficultyId, scenarioId }) => {
           closeScenario();
-          router.push(`/scenario/${scenarioId}/roleplay`);
+          router.push({
+            pathname: "/scenario/[id]/roleplay",
+            params: {
+              id: scenarioId,
+              difficultyId: selectedDifficultyId,
+              languageId: data.language.code,
+            },
+          });
         }}
         onClose={closeScenario}
         onSelectDifficulty={selectDifficulty}
