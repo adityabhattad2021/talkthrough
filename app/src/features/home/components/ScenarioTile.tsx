@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     gap: spacing[3],
-    minHeight: 140,
+    minHeight: 150,
     padding: 14,
   },
   copy: {
