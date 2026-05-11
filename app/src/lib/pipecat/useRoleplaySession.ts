@@ -19,9 +19,15 @@ const INITIAL_STATE: RoleplaySessionState = {
   transportState: TransportStateEnum.DISCONNECTED,
   error: null,
   latestBotLine: "",
+  currentBotText: "",
+  currentUserText: "",
   translation: "",
   suggestions: [],
   transcript: [],
+  remoteAudioLevel: 0,
+  isBotSpeaking: false,
+  isUserSpeaking: false,
+  uiState: "disconnected",
   judge: {
     isComplete: false,
     outcome: "in_progress",
@@ -92,10 +98,63 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong while connecting to Pipecat.";
 }
 
+function getUiState(
+  transportState: RoleplaySessionState["transportState"],
+  error: string | null,
+  isBotSpeaking: boolean,
+  isUserSpeaking: boolean,
+): RoleplaySessionState["uiState"] {
+  if (error) {
+    return "error";
+  }
+
+  if (transportState === TransportStateEnum.DISCONNECTING) {
+    return "disconnecting";
+  }
+
+  if (transportState === TransportStateEnum.DISCONNECTED) {
+    return "disconnected";
+  }
+
+  if (isBotSpeaking) {
+    return "speaking";
+  }
+
+  if (
+    isUserSpeaking ||
+    transportState === TransportStateEnum.CONNECTED ||
+    transportState === TransportStateEnum.READY
+  ) {
+    return "listening";
+  }
+
+  if (
+    transportState === TransportStateEnum.INITIALIZING ||
+    transportState === TransportStateEnum.INITIALIZED ||
+    transportState === TransportStateEnum.AUTHENTICATING ||
+    transportState === TransportStateEnum.AUTHENTICATED ||
+    transportState === TransportStateEnum.CONNECTING
+  ) {
+    return "connecting";
+  }
+
+  return "idle";
+}
+
+function clampAudioLevel(level: number): number {
+  if (!Number.isFinite(level)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, level));
+}
+
 export function useRoleplaySession() {
   const clientRef = useRef<PipecatClient | null>(null);
   const lastUserFinalRef = useRef("");
   const lastBotSentenceRef = useRef("");
+  const botWordBufferRef = useRef<string[]>([]);
+  const lastBotChunkRef = useRef("");
 
   const [state, setState] = useState<RoleplaySessionState>(INITIAL_STATE);
 
@@ -105,12 +164,24 @@ export function useRoleplaySession() {
         setState((current) => ({
           ...current,
           transportState,
+          uiState: getUiState(
+            transportState,
+            current.error,
+            current.isBotSpeaking,
+            current.isUserSpeaking,
+          ),
         }));
       },
       onDisconnected: () => {
+        botWordBufferRef.current = [];
+        lastBotChunkRef.current = "";
         setState((current) => ({
           ...current,
           transportState: TransportStateEnum.DISCONNECTED,
+          remoteAudioLevel: 0,
+          isBotSpeaking: false,
+          isUserSpeaking: false,
+          uiState: "disconnected",
         }));
       },
       onError: (message) => {
@@ -123,16 +194,96 @@ export function useRoleplaySession() {
         setState((current) => ({
           ...current,
           error,
+          uiState: "error",
+        }));
+      },
+      onRemoteAudioLevel: (level) => {
+        setState((current) => ({
+          ...current,
+          remoteAudioLevel: clampAudioLevel(level),
+        }));
+      },
+      onUserStartedSpeaking: () => {
+        setState((current) => ({
+          ...current,
+          isUserSpeaking: true,
+          uiState: getUiState(
+            current.transportState,
+            current.error,
+            current.isBotSpeaking,
+            true,
+          ),
+        }));
+      },
+      onUserStoppedSpeaking: () => {
+        setState((current) => ({
+          ...current,
+          isUserSpeaking: false,
+          currentUserText: "",
+          uiState: getUiState(
+            current.transportState,
+            current.error,
+            current.isBotSpeaking,
+            false,
+          ),
+        }));
+      },
+      onBotStartedSpeaking: () => {
+        setState((current) => {
+          if (!current.isBotSpeaking) {
+            botWordBufferRef.current = [];
+            lastBotChunkRef.current = "";
+          }
+
+          return {
+            ...current,
+            currentBotText: current.isBotSpeaking ? current.currentBotText : "",
+            translation: current.isBotSpeaking ? current.translation : "",
+            isBotSpeaking: true,
+            uiState: getUiState(
+              current.transportState,
+              current.error,
+              true,
+              current.isUserSpeaking,
+            ),
+          };
+        });
+      },
+      onBotStoppedSpeaking: () => {
+        lastBotChunkRef.current = "";
+        setState((current) => ({
+          ...current,
+          isBotSpeaking: false,
+          remoteAudioLevel: 0,
+          uiState: getUiState(
+            current.transportState,
+            current.error,
+            false,
+            current.isUserSpeaking,
+          ),
         }));
       },
       onUserTranscript: (data: TranscriptData) => {
-        if (!data.final || !data.text || data.text === lastUserFinalRef.current) {
+        if (!data.text) {
+          return;
+        }
+
+        if (!data.final) {
+          setState((current) => ({
+            ...current,
+            currentUserText: data.text,
+          }));
+          return;
+        }
+
+        if (data.text === lastUserFinalRef.current) {
           return;
         }
 
         lastUserFinalRef.current = data.text;
         setState((current) => ({
           ...current,
+          currentUserText: "",
           transcript: [
             ...current.transcript,
             createTranscriptLine("user", data.text),
@@ -140,11 +291,28 @@ export function useRoleplaySession() {
         }));
       },
       onBotOutput: (data: BotOutputData) => {
-        if (!data.spoken || data.aggregated_by !== "sentence" || !data.text) {
+        if (!data.text) {
           return;
         }
 
-        if (data.text === lastBotSentenceRef.current) {
+        if (data.spoken && data.aggregated_by === "word") {
+          if (data.text !== lastBotChunkRef.current) {
+            botWordBufferRef.current = [...botWordBufferRef.current, data.text];
+            lastBotChunkRef.current = data.text;
+          }
+
+          setState((current) => ({
+            ...current,
+            currentBotText: botWordBufferRef.current.join(" ").trim(),
+          }));
+          return;
+        }
+
+        if (
+          !data.spoken ||
+          data.aggregated_by !== "sentence" ||
+          data.text === lastBotSentenceRef.current
+        ) {
           return;
         }
 
@@ -152,10 +320,26 @@ export function useRoleplaySession() {
         setState((current) => ({
           ...current,
           latestBotLine: data.text,
+          currentBotText: data.text,
           transcript: [
             ...current.transcript,
             createTranscriptLine("bot", data.text),
           ],
+        }));
+      },
+      onBotTtsText: (data) => {
+        if (!data.text) {
+          return;
+        }
+
+        if (data.text !== lastBotChunkRef.current) {
+          botWordBufferRef.current = [...botWordBufferRef.current, data.text];
+          lastBotChunkRef.current = data.text;
+        }
+
+        setState((current) => ({
+          ...current,
+          currentBotText: botWordBufferRef.current.join(" ").trim(),
         }));
       },
       onServerMessage: (payload: unknown) => {
@@ -199,7 +383,12 @@ export function useRoleplaySession() {
     };
   }, []);
 
-  async function connect({ serverUrl, scenarioId, languageId }: ConnectParams) {
+  async function connect({
+    serverUrl,
+    scenarioId,
+    languageId,
+    difficultyId,
+  }: ConnectParams) {
     const client = clientRef.current;
     if (!client) {
       return;
@@ -210,15 +399,19 @@ export function useRoleplaySession() {
       setState((current) => ({
         ...current,
         error: "Server URL is required.",
+        uiState: "error",
       }));
       return;
     }
 
     lastUserFinalRef.current = "";
     lastBotSentenceRef.current = "";
+    botWordBufferRef.current = [];
+    lastBotChunkRef.current = "";
     setState({
       ...INITIAL_STATE,
       transportState: TransportStateEnum.INITIALIZING,
+      uiState: "connecting",
     });
 
     try {
@@ -229,6 +422,7 @@ export function useRoleplaySession() {
           body: {
             scenario_id: scenarioId,
             language: languageId,
+            difficulty_id: difficultyId,
           },
         },
       });
@@ -237,6 +431,7 @@ export function useRoleplaySession() {
         ...current,
         error: getErrorMessage(error),
         transportState: TransportStateEnum.ERROR,
+        uiState: "error",
       }));
     }
   }
@@ -250,6 +445,8 @@ export function useRoleplaySession() {
     await client.disconnect();
     lastUserFinalRef.current = "";
     lastBotSentenceRef.current = "";
+    botWordBufferRef.current = [];
+    lastBotChunkRef.current = "";
     setState(INITIAL_STATE);
   }
 
@@ -257,6 +454,12 @@ export function useRoleplaySession() {
     setState((current) => ({
       ...current,
       error: null,
+      uiState: getUiState(
+        current.transportState,
+        null,
+        current.isBotSpeaking,
+        current.isUserSpeaking,
+      ),
     }));
   }
 

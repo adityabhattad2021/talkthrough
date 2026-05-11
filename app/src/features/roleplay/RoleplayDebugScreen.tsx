@@ -50,14 +50,15 @@ export function RoleplayDebugScreen() {
   const [serverUrl, setServerUrl] = useState("http://localhost:7860");
   const [scenarioId, setScenarioId] = useState("auto-rickshaw");
   const [languageId, setLanguageId] = useState("marathi");
+  const [difficultyId] = useState("medium");
   const { id } = useLocalSearchParams<{id:string}>();
 
   useEffect(()=>{
     if(id){
       setScenarioId(id);
-      connect({ serverUrl, scenarioId: id, languageId });
+      connect({ serverUrl, scenarioId: id, languageId, difficultyId });
     }
-  }, [id])
+  }, [difficultyId, id, languageId, serverUrl])
 
 
   const canConnect = useMemo(() => {
@@ -124,7 +125,7 @@ export function RoleplayDebugScreen() {
           <View style={styles.buttonRow}>
             <Pressable
               disabled={!canConnect}
-              onPress={() => connect({ serverUrl, scenarioId, languageId })}
+              onPress={() => connect({ serverUrl, scenarioId, languageId, difficultyId })}
               style={[
                 styles.button,
                 styles.primaryButton,

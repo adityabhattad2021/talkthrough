@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { MockHomeRepository } from "../data/homeRepository.mock";
+import { HttpHomeRepository } from "../data/homeRepository.http";
 import { HomeData } from "../model/types";
 
-const repository = new MockHomeRepository();
+const repository = new HttpHomeRepository();
 
 type HomeDataState = {
   data: HomeData | null;

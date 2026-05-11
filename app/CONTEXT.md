@@ -9,11 +9,11 @@ The app now has two main responsibilities:
 - render the user-facing home screen where practice scenarios are surfaced
 - connect to the Pipecat backend for live roleplay sessions
 
-Today, the home screen is implemented with a small feature module and mock repository data, but it is intentionally shaped so that later we can swap in:
+Today, the home screen is backed by a small feature module plus a real HTTP repository that fetches the backend app contract. It is still intentionally shaped so that later we can swap in:
 
-- backend-fetched home payloads
 - local SQLite or AsyncStorage-backed cached state
 - synced backend + local fallback
+- DB-backed server content without changing the app-facing payload shape
 
 The roleplay layer is still the realtime part of the app.
 
@@ -56,7 +56,7 @@ In plain English:
 1. The user lands on the home screen.
 2. The app loads a home payload through the home repository layer.
 3. The user selects a scenario and difficulty.
-4. The app will eventually hand that selection off to the roleplay flow.
+4. The app hands that selection off to the roleplay flow with `scenarioId`, `difficultyId`, and `languageId`.
 5. The Pipecat client connects to the backend through Small WebRTC.
 6. The backend runs the live voice roleplay.
 7. After each assistant turn, the backend sends extra structured data back:
@@ -78,15 +78,17 @@ app/
 ├── src/
 │   ├── app/
 │   │   ├── _layout.tsx
-│   │   └── index.tsx
+│   │   ├── index.tsx
+│   │   ├── (main)/
+│   │   └── scenario/
 │   ├── features/
 │   │   ├── home/
 │   │   │   ├── components/
 │   │   │   ├── data/
 │   │   │   ├── hooks/
 │   │   │   ├── model/
-│   │   │   └── HomeScreen.tsx
 │   │   └── roleplay/
+│   │       ├── components/
 │   │       ├── options.ts
 │   │       └── RoleplayDebugScreen.tsx
 │   ├── theme/
@@ -95,6 +97,7 @@ app/
 │   │   ├── spacing.ts
 │   │   └── typography.ts
 │   └── lib/
+│       ├── server.ts
 │       └── pipecat/
 │           ├── client.ts
 │           ├── types.ts
@@ -104,7 +107,7 @@ app/
 
 ## What Each Important File Does
 
-### [app.json](/Users/adityabhattad/Desktop/Github/talkthrough/app/app.json)
+### [app.json](app.json)
 
 Expo app configuration.
 
@@ -120,7 +123,7 @@ Change this when you need:
 - native plugin behavior
 - splash/icon config
 
-### [src/app/_layout.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/app/_layout.tsx)
+### [src/app/_layout.tsx](src/app/_layout.tsx)
 
 Top-level Expo Router layout.
 
@@ -131,12 +134,12 @@ Right now it is intentionally minimal:
 
 If the whole app needs a provider later, this is a likely place for it.
 
-### [src/app/index.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/app/index.tsx)
+### [src/app/index.tsx](src/app/index.tsx)
 
 Entry screen route.
 
-Right now it renders the app home screen:
-- [src/features/home/HomeScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/home/HomeScreen.tsx)
+Right now it redirects to the main home route:
+- [src/app/(main)/home.tsx](src/app/(main)/home.tsx)
 
 This route should stay thin.
 
@@ -149,7 +152,7 @@ Bad uses for this file:
 - business logic
 - data fetching details
 
-### [src/features/home/HomeScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/home/HomeScreen.tsx)
+### [src/app/(main)/home.tsx](src/app/(main)/home.tsx)
 
 Current user-facing home screen.
 
@@ -176,7 +179,7 @@ This is where we define:
 - `DifficultyOption`
 - language and user profile shapes
 
-This layer matters because the home UI should depend on stable domain types, not on ad hoc backend responses.
+This layer matters because the home UI should depend on stable domain types, not on ad hoc backend responses. The current backend app routes are shaped to match this layer.
 
 ### `src/features/home/data/*`
 
@@ -184,7 +187,9 @@ Repository boundary for the home screen.
 
 Today:
 - `homeRepository.ts` defines the contract
-- `homeRepository.mock.ts` provides mock data
+- `homeRepository.http.ts` fetches the real backend payload
+
+The mock repository may still be useful for isolated UI work, but it is no longer the main data path.
 
 Later this is where we can add:
 - API-backed repository implementations
@@ -223,9 +228,9 @@ The current split includes:
 
 These files should stay prop-driven and easy to read.
 
-### [src/theme/colors.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/colors.ts), [radius.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/radius.ts), [spacing.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/spacing.ts), [typography.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/theme/typography.ts)
+### [src/theme/colors.ts](src/theme/colors.ts), [radius.ts](src/theme/radius.ts), [spacing.ts](src/theme/spacing.ts), [typography.ts](src/theme/typography.ts)
 
-Shared design tokens derived from the design system in [docs/DESIGN.md](/Users/adityabhattad/Desktop/Github/talkthrough/docs/DESIGN.md).
+Shared design tokens derived from the design system in [docs/DESIGN.md](../docs/DESIGN.md).
 
 Use these files for:
 - palette values
@@ -235,7 +240,29 @@ Use these files for:
 
 Avoid scattering raw token values across feature files unless there is a very local one-off reason.
 
-### [src/features/roleplay/RoleplayDebugScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/roleplay/RoleplayDebugScreen.tsx)
+### [src/lib/server.ts](src/lib/server.ts)
+
+Small helper for backend base URL construction.
+
+Use this file when:
+
+- backend host changes
+- app fetch code needs a shared base URL helper
+
+### [src/app/scenario/[id]/roleplay.tsx](src/app/scenario/[id]/roleplay.tsx)
+
+Current production roleplay route.
+
+It is responsible for:
+
+- reading `scenarioId`, `difficultyId`, and `languageId` from route params
+- fetching scenario detail from `/app/scenarios/{id}`
+- starting the Pipecat live session with the selected difficulty and language
+- rendering current conversation state
+
+This screen is still early, but it is now the real integration path instead of just a debug surface.
+
+### [src/features/roleplay/RoleplayDebugScreen.tsx](src/features/roleplay/RoleplayDebugScreen.tsx)
 
 Current UI screen for testing the full voice flow.
 
@@ -259,7 +286,7 @@ If business logic starts growing here, move it into:
 
 This screen is no longer the app entry point, but it is still useful as an integration and debugging surface while the production roleplay flow is being built.
 
-### [src/features/roleplay/options.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/roleplay/options.ts)
+### [src/features/roleplay/options.ts](src/features/roleplay/options.ts)
 
 Simple UI options for scenarios and languages.
 
@@ -271,7 +298,7 @@ Not a good place for:
 - connection logic
 - network calls
 
-### [src/lib/pipecat/client.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/client.ts)
+### [src/lib/pipecat/client.ts](src/lib/pipecat/client.ts)
 
 Creates the Pipecat client.
 
@@ -284,7 +311,7 @@ It currently:
 
 If we ever change transport or media manager, start here.
 
-### [src/lib/pipecat/types.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/types.ts)
+### [src/lib/pipecat/types.ts](src/lib/pipecat/types.ts)
 
 Type definitions for:
 - app-side session state
@@ -293,7 +320,7 @@ Type definitions for:
 
 If server message shapes change, this is one of the first places to update.
 
-### [src/lib/pipecat/useRoleplaySession.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/useRoleplaySession.ts)
+### [src/lib/pipecat/useRoleplaySession.ts](src/lib/pipecat/useRoleplaySession.ts)
 
 This is the main app-side session controller.
 
@@ -363,10 +390,10 @@ We currently depend on a few upstream React Native packages that have small comp
 Instead of editing `node_modules` manually after every install, we keep one script that reapplies those fixes automatically.
 
 That script is:
-- [scripts/patch-rn-deps.mjs](/Users/adityabhattad/Desktop/Github/talkthrough/app/scripts/patch-rn-deps.mjs)
+- [scripts/patch-rn-deps.mjs](scripts/patch-rn-deps.mjs)
 
 It runs automatically via:
-- `postinstall` in [package.json](/Users/adityabhattad/Desktop/Github/talkthrough/app/package.json)
+- `postinstall` in [package.json](package.json)
 
 ### The actual bug it fixes
 
@@ -435,34 +462,34 @@ At that point:
 ### Change session UI
 
 Start in:
-- [src/features/roleplay/RoleplayDebugScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/roleplay/RoleplayDebugScreen.tsx)
+- [src/features/roleplay/RoleplayDebugScreen.tsx](src/features/roleplay/RoleplayDebugScreen.tsx)
 
 ### Change session behavior / callback handling
 
 Start in:
-- [src/lib/pipecat/useRoleplaySession.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/useRoleplaySession.ts)
+- [src/lib/pipecat/useRoleplaySession.ts](src/lib/pipecat/useRoleplaySession.ts)
 
 ### Change transport or media manager
 
 Start in:
-- [src/lib/pipecat/client.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/client.ts)
+- [src/lib/pipecat/client.ts](src/lib/pipecat/client.ts)
 
 ### Change native plugin settings
 
 Start in:
-- [app.json](/Users/adityabhattad/Desktop/Github/talkthrough/app/app.json)
+- [app.json](app.json)
 
 ### Change Android local dev forwarding
 
 Start in:
-- [Makefile](/Users/adityabhattad/Desktop/Github/talkthrough/app/Makefile)
-- root [Makefile](/Users/adityabhattad/Desktop/Github/talkthrough/Makefile)
+- [Makefile](Makefile)
+- root [Makefile](../Makefile)
 
 ### Change or remove the dependency compatibility patch
 
 Start in:
-- [scripts/patch-rn-deps.mjs](/Users/adityabhattad/Desktop/Github/talkthrough/app/scripts/patch-rn-deps.mjs)
-- [package.json](/Users/adityabhattad/Desktop/Github/talkthrough/app/package.json)
+- [scripts/patch-rn-deps.mjs](scripts/patch-rn-deps.mjs)
+- [package.json](package.json)
 
 ## Current Practical State
 

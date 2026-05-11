@@ -10,6 +10,14 @@ The current local-dev setup uses:
 - **Gemini Live** for the in-character voice agent
 - a separate **helper model call** for translation, suggestions, and completion judgment
 
+The repo now also has a small app-facing backend contract:
+
+- `/app/home`
+- `/app/scenarios`
+- `/app/scenarios/{id}`
+
+Those routes are JSON-backed today and are the intended contract for the mobile app. Debug routes still exist, but they are not the long-term app contract.
+
 ## Repo Layout
 
 ```text
@@ -245,14 +253,23 @@ uv sync
 uv run bot.py
 ```
 
-## Current App Screen
+## Current App State
 
-The RN app currently has a **debug roleplay screen** that lets you:
+The RN app currently opens to the home screen and fetches its content from the backend app routes.
+
+The main implemented flow today is:
+
+- home screen backed by `/app/home`
+- scenario roleplay route backed by `/app/scenarios/{id}`
+- live Pipecat roleplay session with `scenarioId`, `difficultyId`, and `languageId`
+
+There is also still a debug roleplay screen for integration testing. It lets you:
+
 - choose scenario
 - choose language
 - set server URL
 - connect to the Pipecat backend
-- see:
+- inspect:
   - latest bot speech
   - translation
   - suggestions
@@ -260,9 +277,9 @@ The RN app currently has a **debug roleplay screen** that lets you:
   - transcript
 
 Main RN files:
-- [app/src/features/roleplay/RoleplayDebugScreen.tsx](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/features/roleplay/RoleplayDebugScreen.tsx)
-- [app/src/lib/pipecat/useRoleplaySession.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/useRoleplaySession.ts)
-- [app/src/lib/pipecat/client.ts](/Users/adityabhattad/Desktop/Github/talkthrough/app/src/lib/pipecat/client.ts)
+- [app/src/features/roleplay/RoleplayDebugScreen.tsx](app/src/features/roleplay/RoleplayDebugScreen.tsx)
+- [app/src/lib/pipecat/useRoleplaySession.ts](app/src/lib/pipecat/useRoleplaySession.ts)
+- [app/src/lib/pipecat/client.ts](app/src/lib/pipecat/client.ts)
 
 ## Current Server Flow
 
@@ -273,9 +290,9 @@ The server currently:
 4. sends `session_complete` when the conversation is done
 
 Main server files:
-- [server/src/session.py](/Users/adityabhattad/Desktop/Github/talkthrough/server/src/session.py)
-- [server/src/conversation_helper.py](/Users/adityabhattad/Desktop/Github/talkthrough/server/src/conversation_helper.py)
-- [server/src/rtvi.py](/Users/adityabhattad/Desktop/Github/talkthrough/server/src/rtvi.py)
+- [server/src/session.py](server/src/session.py)
+- [server/src/conversation_helper.py](server/src/conversation_helper.py)
+- [server/src/rtvi.py](server/src/rtvi.py)
 
 ## Troubleshooting
 
@@ -312,7 +329,7 @@ http://localhost:7860
 Rebuild the app:
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough/app
+cd app
 make clean
 make android
 ```
@@ -322,6 +339,6 @@ make android
 Run:
 
 ```bash
-cd /Users/adityabhattad/Desktop/Github/talkthrough/app
+cd app
 make watchman
 ```

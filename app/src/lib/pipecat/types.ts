@@ -11,6 +11,15 @@ export type TranscriptLine = {
   text: string;
 };
 
+export type RoleplayUiState =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "speaking"
+  | "disconnecting"
+  | "disconnected"
+  | "error";
+
 export type HelperResultPayload = {
   language: string;
   languageId: string;
@@ -44,9 +53,15 @@ export type RoleplaySessionState = {
   transportState: TransportState;
   error: string | null;
   latestBotLine: string;
+  currentBotText: string;
+  currentUserText: string;
   translation: string;
   suggestions: Suggestion[];
   transcript: TranscriptLine[];
+  remoteAudioLevel: number;
+  isBotSpeaking: boolean;
+  isUserSpeaking: boolean;
+  uiState: RoleplayUiState;
   judge: {
     isComplete: boolean;
     outcome: string;
@@ -59,4 +74,5 @@ export type ConnectParams = {
   serverUrl: string;
   scenarioId: string;
   languageId: string;
+  difficultyId: string;
 };
