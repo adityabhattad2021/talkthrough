@@ -113,8 +113,8 @@ In this project:
 - `SmallWebRTC Transport` handles the live audio path
 - `User Aggregator` tells us when the learner has finished speaking
 - `Assistant Aggregator` tells us when Ravi has finished speaking
-- `Helper Model Call` generates translation, suggestions, and completion judgment
-- `RTVI Custom Messages` send helper results back to the UI
+- `Helper Model Call` generates suggestions and completion judgment
+- `RTVI Custom Messages` send translation, helper guidance, and completion state back to the UI
 
 Alongside the live pipeline, the app also fetches metadata over HTTP:
 
@@ -139,23 +139,18 @@ So we changed the design:
 
 This is the most important architecture decision in the current server.
 
-### 2. Translation and judgment should be one helper call
+### 2. Translation and guidance should be split by latency needs
 
-Originally they were two separate calls:
+Originally translation, suggestions, and completion judgment were bundled into one helper call.
 
-- one translator call
-- one judge call
+That made the UI wait for the slowest part of the helper response.
 
-That was slower and made the UI wiring messier.
+The current design splits the post-turn work into:
 
-Now they are combined into one helper model call that returns:
+- one fast translation call
+- one guidance/judge call
 
-- translation
-- suggestions
-- completion decision
-- completion reason
-
-This reduced complexity and should improve latency.
+That gives the client earlier English text while still keeping suggestions and completion logic together.
 
 ### 3. The debug UI is for understanding the system, not for production
 
@@ -229,11 +224,12 @@ The important rule is that characters should act on their own incentives realist
 ### Helper model
 
 - `src/conversation_helper.py`
-  - structured JSON helper call
+  - translation call plus structured guidance helper call
 
 ### Client message sending
 
 - `src/rtvi.py`
+  - sends `translation_result`
   - sends `helper_result`
   - sends `session_complete`
 
@@ -255,8 +251,11 @@ The important rule is that characters should act on their own incentives realist
 6. Assistant speaks.
 7. When assistant finishes a turn:
    - server stores the final assistant text
-   - server calls the helper model
-   - helper returns translation, suggestions, completion state
+   - server calls the translation path
+   - server calls the guidance helper path
+   - translation returns English text
+   - guidance returns suggestions and completion state
+   - server sends `translation_result` to client
    - server sends `helper_result` to client
 8. If helper says the session is complete:
    - server sends `session_complete`
@@ -338,7 +337,15 @@ So the mental model is:
 
 ## Important Message Types
 
-The client currently receives two custom server messages:
+The client currently receives three custom server messages:
+
+### `translation_result`
+
+Sent after every assistant turn when translation is ready.
+
+Contains:
+
+- translation
 
 ### `helper_result`
 
@@ -346,7 +353,6 @@ Sent after every assistant turn.
 
 Contains:
 
-- translation
 - suggestions
 - `isComplete`
 - `outcome`
@@ -475,6 +481,7 @@ That logic is better in the helper path unless there is a strong reason otherwis
 
 If you change:
 
+- `translation_result`
 - `helper_result`
 - `session_complete`
 

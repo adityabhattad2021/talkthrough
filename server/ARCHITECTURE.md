@@ -6,9 +6,9 @@ The server has one job:
 
 1. serve app-facing scenario data for the mobile client
 2. run the live voice roleplay with Pipecat + Gemini Live
-3. after each assistant turn, call one helper model
-4. send the helper result back to the client
-5. end the session automatically when the helper decides the conversation is over
+3. after each assistant turn, run a fast translation path and a separate guidance/judge path
+4. send translation and guidance results back to the client
+5. end the session automatically when the guidance helper decides the conversation is over
 
 The important distinction now is:
 
@@ -80,19 +80,20 @@ flowchart TD
 
     M -->|assistant audio + text turn| N["on_assistant_turn_stopped"]
     N --> O["ConversationHelper<br/>src/conversation_helper.py"]
-    O --> P["Gemini text helper model"]
+    O --> P["Translation call"]
+    O --> Q["Guidance/judge call"]
+    P --> R["translation_result"]
+    Q --> S["helper_result"]
+    R --> T["src/rtvi.py"]
+    S --> T
+    T -->|RTVI custom server message| A
 
-    P -->|structured JSON| O
-    O --> Q["helper_result"]
-    Q --> R["src/rtvi.py"]
-    R -->|RTVI custom server message| A
-
-    O --> S{"is_complete?"}
-    S -->|No| T["Keep conversation going"]
-    S -->|Yes| U["session_complete"]
-    U --> R
-    R -->|RTVI custom server message| A
-    U --> V["Cancel Pipecat task after short delay"]
+    S --> U{"is_complete?"}
+    U -->|No| V["Keep conversation going"]
+    U -->|Yes| W["session_complete"]
+    W --> T
+    T -->|RTVI custom server message| A
+    W --> X["Cancel Pipecat task after short delay"]
 ```
 
 ## Core Design Idea
@@ -107,9 +108,13 @@ We intentionally split the system into two model roles:
 - `Helper model`
   - reads the assistant's latest line plus conversation context
   - returns:
-    - English translation
     - learner reply suggestions
     - completion decision
+
+- `Translation helper path`
+  - reads only the assistant's latest line
+  - returns:
+    - English translation
 
 This split is important. We tried putting session-ending responsibility directly inside the live model via tool calling, but that created unstable conversational behavior. The current architecture is more reliable because the live model only has to converse, while the helper model judges and annotates each turn separately.
 
@@ -166,19 +171,20 @@ The aggregators emit final text when a turn ends:
 
 We store those lines in memory in `SessionState.conversation_lines`.
 
-### 5. Helper model runs after every assistant turn
+### 5. Translation and guidance run after every assistant turn
 
 When the assistant finishes a turn:
 
 1. the latest assistant line is added to `conversation_lines`
-2. `ConversationHelper.analyze_turn(...)` is called
-3. the helper returns structured JSON
+2. `ConversationHelper.translate_turn(...)` is called
+3. `ConversationHelper.analyze_turn(...)` is also called
+4. translation is sent to the client as soon as it is ready
+5. the guidance helper returns structured JSON
 
-That JSON includes both UI help and session control:
+That guidance JSON includes UI help plus session control:
 
 ```json
 {
-  "translation": "...",
   "suggestions": [
     {"romanized": "...", "english": "..."}
   ],
@@ -190,9 +196,12 @@ That JSON includes both UI help and session control:
 
 ### 6. Client gets helper output
 
-The server sends a custom RTVI message called `helper_result`.
+The server now sends two helper-related RTVI messages:
 
-The debug UI uses that to render:
+- `translation_result`
+- `helper_result`
+
+The client uses them to render:
 
 - translation
 - suggestions
@@ -214,19 +223,21 @@ Then the server waits about 1 second and cancels the Pipecat task.
 
 ## Why There Are Two Server Messages
 
-You may see two custom server messages near the end of a session:
+You may see three custom server messages near the end of a session:
 
-1. `helper_result`
-2. `session_complete`
+1. `translation_result`
+2. `helper_result`
+3. `session_complete`
 
 This is expected.
 
 Reason:
 
+- `translation_result` is sent after every assistant turn when translation is ready
 - `helper_result` is sent after every assistant turn, whether complete or not
-- `session_complete` is only sent when the helper says the conversation is over
+- `session_complete` is only sent when the guidance helper says the conversation is over
 
-So the final assistant turn often causes both messages back-to-back.
+So the final assistant turn often causes all of these messages in close succession.
 
 ## Important Files
 
@@ -335,6 +346,8 @@ Builds all prompts and helper inputs.
 Main functions:
 
 - `build_character_system_prompt(...)`
+- `build_translation_input(...)`
+- `build_translation_system_prompt(...)`
 - `build_helper_input(...)`
 - `build_helper_system_prompt(...)`
 
