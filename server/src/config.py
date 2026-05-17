@@ -24,7 +24,7 @@ def load_settings() -> Settings:
     return Settings(
         google_api_key=_clean_env("GOOGLE_API_KEY"),
         live_model=_clean_env("GOOGLE_MODEL", "models/gemini-3.1-flash-live-preview"),
-        helper_model=_clean_env("GOOGLE_HELPER_MODEL", "models/gemini-3-flash-preview"),
+        helper_model=_clean_env("GOOGLE_HELPER_MODEL", "models/gemini-3.1-flash-lite"),
         live_voice_id=_clean_env("GOOGLE_VOICE_ID", "Charon"),
-        helper_thinking_level=_clean_env("GOOGLE_HELPER_THINKING_LEVEL", "LOW"),
+        helper_thinking_level=_clean_env("GOOGLE_HELPER_THINKING_LEVEL", "MINIMAL"),
     )

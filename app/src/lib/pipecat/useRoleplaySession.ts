@@ -61,7 +61,11 @@ function normalizeServerMessage(payload: unknown): ServerEnvelope | null {
     return null;
   }
 
-  if (message.type === "helper_result" || message.type === "session_complete") {
+  if (
+    message.type === "translation_result" ||
+    message.type === "helper_result" ||
+    message.type === "session_complete"
+  ) {
     return message as ServerEnvelope;
   }
 
@@ -348,10 +352,17 @@ export function useRoleplaySession() {
           return;
         }
 
-        if (message.type === "helper_result") {
+        if (message.type === "translation_result") {
           setState((current) => ({
             ...current,
             translation: message.data.translation,
+          }));
+          return;
+        }
+
+        if (message.type === "helper_result") {
+          setState((current) => ({
+            ...current,
             suggestions: message.data.suggestions,
             judge: {
               isComplete: message.data.isComplete,

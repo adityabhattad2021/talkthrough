@@ -92,34 +92,42 @@ Conversation so far:
 Character's latest line: {assistant_line}"""
 
 
+def build_translation_input(*, assistant_line: str) -> str:
+    return f"Character's latest line: {assistant_line}"
+
+
+def build_translation_system_prompt(language: Language) -> str:
+    return f"""You are the live translation helper for a {language.display_name} language-learning roleplay app.
+
+Translate the character's latest line from {language.display_name} into natural English.
+
+Rules:
+- Translate meaning, not words.
+- Keep proper nouns and natural code-mixing.
+- Keep it concise and conversational.
+- Return only the translation text with no labels, markdown, or extra commentary.
+""".strip()
+
+
 def build_helper_system_prompt(language: Language) -> str:
     romanization_notes = (
         f"\nRomanization notes:\n- {language.romanization_notes}\n" if language.romanization_notes else "\n"
     )
-    return f"""You are the live helper for a {language.display_name} language-learning roleplay app.
+    return f"""You are the live guidance helper for a {language.display_name} language-learning roleplay app.
 
-For each assistant turn, you must do two jobs in one response:
-1. Translate the character's latest line from {language.display_name} into natural English.
-2. Decide whether the conversation is now complete.
+For each assistant turn, decide whether the conversation is now complete and suggest good learner replies.
 
 Return valid JSON only with exactly these fields:
-- translation
 - suggestions
 - is_complete
 - outcome
 - reason
 
 Field requirements:
-- translation: natural conversational English for the character's latest line
 - suggestions: 2 or 3 learner reply suggestions in romanized {language.display_name}, each with English meaning
 - is_complete: boolean
 - outcome: "success" | "failure" | "in_progress"
 - reason: short explanation of the completion decision
-
-Translation rules:
-- Translate meaning, not words.
-- Keep proper nouns and natural code-mixing.
-- Keep it concise and conversational.
 
 Suggestion rules:
 - Always return 2 or 3 suggestions.

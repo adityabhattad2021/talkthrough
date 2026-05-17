@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Dot } from "lucide-react-native";
@@ -63,6 +73,14 @@ export default function RoleplayScreen() {
   const [scenario, setScenario] = useState<ScenarioDetail>(EMPTY_SCENARIO);
   const [isLoadingScenario, setIsLoadingScenario] = useState(true);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const translationOpacity = useRef(new Animated.Value(0)).current;
+  const translationTranslateY = useRef(new Animated.Value(8)).current;
+  const placeholderOpacity = useRef(new Animated.Value(0.55)).current;
+  const suggestionOpacity = useRef(new Animated.Value(0)).current;
+  const suggestionTranslateY = useRef(new Animated.Value(10)).current;
+  const suggestionsTopRef = useRef(0);
+  const { height: windowHeight } = useWindowDimensions();
 
   const selectedDifficultyId = difficultyId ?? "medium";
   const selectedLanguageId = languageId ?? "marathi";
@@ -145,9 +163,110 @@ export default function RoleplayScreen() {
     };
   }, [state.transportState]);
 
+  useEffect(() => {
+    if (state.translation) {
+      placeholderOpacity.stopAnimation();
+      translationOpacity.setValue(0);
+      translationTranslateY.setValue(8);
+      Animated.parallel([
+        Animated.timing(translationOpacity, {
+          toValue: 1,
+          duration: 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(translationTranslateY, {
+          toValue: 0,
+          duration: 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    translationOpacity.setValue(0);
+    translationTranslateY.setValue(8);
+
+    if (!state.isBotSpeaking) {
+      placeholderOpacity.stopAnimation();
+      placeholderOpacity.setValue(0.55);
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(placeholderOpacity, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(placeholderOpacity, {
+          toValue: 0.45,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+
+    return () => {
+      loop.stop();
+    };
+  }, [
+    placeholderOpacity,
+    state.isBotSpeaking,
+    state.translation,
+    suggestionOpacity,
+    suggestionTranslateY,
+    translationOpacity,
+    translationTranslateY,
+  ]);
+
+  useEffect(() => {
+    if (!state.suggestions.length) {
+      suggestionOpacity.setValue(0);
+      suggestionTranslateY.setValue(10);
+      return;
+    }
+
+    suggestionOpacity.setValue(0);
+    suggestionTranslateY.setValue(10);
+    Animated.parallel([
+      Animated.timing(suggestionOpacity, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(suggestionTranslateY, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const timeoutId = setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, suggestionsTopRef.current - spacing[4]),
+        animated: true,
+      });
+    }, 180);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [state.suggestions, suggestionOpacity, suggestionTranslateY]);
+
   const streamedBotLine = useMemo(() => {
     return state.currentBotText || state.latestBotLine || "";
   }, [state.currentBotText, state.latestBotLine]);
+
+  const compactLayout = windowHeight < 780;
+  const waveformHeight = compactLayout ? 156 : 220;
 
   const statusLabel = state.error
     ? "error"
@@ -168,6 +287,10 @@ export default function RoleplayScreen() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
+  function handleSuggestionsLayout(event: LayoutChangeEvent) {
+    suggestionsTopRef.current = event.nativeEvent.layout.y;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -185,50 +308,123 @@ export default function RoleplayScreen() {
         </View>
       </View>
 
-      <View style={styles.waveformWrap}>
-        <LiveWaveform
-          active={state.isBotSpeaking}
-          processing={state.uiState === "connecting"}
-          level={state.remoteAudioLevel}
-          barColor={state.isBotSpeaking ? colors.sage700 : colors.ash}
-          barWidth={12}
-          height={220}
-          barRadius={40}
-        />
-      </View>
-
-      <View style={styles.agentStatusContainer}>
-        <Text style={styles.agentName}>{scenario.characterName}</Text>
-        <Text style={styles.agentRole}>{scenario.characterRole}</Text>
-
-        <View style={styles.agentStatusPill}>
-          <Dot
-            size={16}
-            color={
-              state.error
-                ? colors.error
-                : state.isBotSpeaking
-                  ? colors.sage700
-                  : colors.ink
-            }
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.waveformWrap}>
+          <LiveWaveform
+            active={state.isBotSpeaking}
+            processing={state.uiState === "connecting"}
+            level={state.remoteAudioLevel}
+            barColor={state.isBotSpeaking ? colors.sage700 : colors.ash}
+            barWidth={12}
+            height={waveformHeight}
+            barRadius={40}
           />
-          <Text style={styles.agentStatusText}>{statusLabel}</Text>
         </View>
-      </View>
 
-      <View style={styles.transcriptArea}>
-        <Text style={styles.liveLine}>
-          {streamedBotLine || "Waiting for the conversation to begin..."}
-        </Text>
+        <View style={styles.agentStatusContainer}>
+          <Text style={styles.agentName}>{scenario.characterName}</Text>
+          <Text style={styles.agentRole}>{scenario.characterRole}</Text>
 
-        <Text style={styles.translationLine}>
-          {state.translation || "English translation will appear here."}
-        </Text>
+          <View style={styles.agentStatusPill}>
+            <Dot
+              size={16}
+              color={
+                state.error
+                  ? colors.error
+                  : state.isBotSpeaking
+                    ? colors.sage700
+                    : colors.ink
+              }
+            />
+            <Text style={styles.agentStatusText}>{statusLabel}</Text>
+          </View>
+        </View>
 
-        {state.error ? (
-          <Text style={styles.errorText}>{state.error}</Text>
-        ) : null}
-      </View>
+        <View style={styles.transcriptArea}>
+          <Text style={[styles.liveLine, compactLayout && styles.liveLineCompact]}>
+            {streamedBotLine || "Waiting for the conversation to begin..."}
+          </Text>
+
+          <View style={styles.translationCard}>
+            <View style={styles.translationHeader}>
+              <Text style={styles.translationEyebrow}>ENGLISH</Text>
+              <Text style={styles.translationStatus}>
+                {state.translation
+                  ? "live"
+                  : state.isBotSpeaking
+                    ? "translating..."
+                    : "standby"}
+              </Text>
+            </View>
+
+            {state.translation ? (
+              <Animated.Text
+                style={[
+                  styles.translationLine,
+                  {
+                    opacity: translationOpacity,
+                    transform: [{ translateY: translationTranslateY }],
+                  },
+                ]}
+              >
+                {state.translation}
+              </Animated.Text>
+            ) : (
+              <Animated.View
+                style={[styles.translationPlaceholder, { opacity: placeholderOpacity }]}
+              >
+                <View style={styles.placeholderLineLong} />
+                <View style={styles.placeholderLineShort} />
+              </Animated.View>
+            )}
+          </View>
+
+          {state.suggestions.length ? (
+            <View style={styles.suggestionsCard} onLayout={handleSuggestionsLayout}>
+              <View style={styles.translationHeader}>
+                <Text style={styles.suggestionEyebrow}>TRY SAYING</Text>
+                <Text style={styles.translationStatus}>
+                  {`${state.suggestions.length} ideas`}
+                </Text>
+              </View>
+
+              <Animated.View
+                style={{
+                  opacity: suggestionOpacity,
+                  transform: [{ translateY: suggestionTranslateY }],
+                }}
+              >
+                {state.suggestions.map((suggestion, index) => (
+                  <View
+                    key={`${suggestion.romanized}-${index}`}
+                    style={styles.suggestionOption}
+                  >
+                    <View style={styles.suggestionNumberBadge}>
+                      <Text style={styles.suggestionNumberText}>{index + 1}</Text>
+                    </View>
+                    <View style={styles.suggestionCopy}>
+                      <Text style={styles.suggestionRomanized}>
+                        {suggestion.romanized}
+                      </Text>
+                      <Text style={styles.suggestionEnglish}>
+                        {suggestion.english}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Animated.View>
+            </View>
+          ) : null}
+
+          {state.error ? (
+            <Text style={styles.errorText}>{state.error}</Text>
+          ) : null}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -238,11 +434,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.sage50,
   },
+  content: {
+    paddingBottom: spacing[8],
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing[6],
     paddingTop: spacing[4],
+    paddingBottom: spacing[2],
+    backgroundColor: colors.sage50,
   },
   headerSide: {
     flex: 1,
@@ -297,9 +498,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   transcriptArea: {
-    flex: 1,
-    justifyContent: "center",
     paddingHorizontal: spacing[6],
+    paddingTop: spacing[4],
     paddingBottom: spacing[8],
     gap: spacing[4],
   },
@@ -309,10 +509,104 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 34,
   },
+  liveLineCompact: {
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  translationCard: {
+    borderRadius: 20,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    gap: spacing[3],
+  },
+  translationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing[2],
+  },
+  translationEyebrow: {
+    ...typography.micro,
+    color: colors.sage700,
+    letterSpacing: 1.2,
+  },
+  suggestionEyebrow: {
+    ...typography.micro,
+    color: colors.ink,
+    letterSpacing: 1.2,
+  },
+  translationStatus: {
+    ...typography.micro,
+    color: colors.ash,
+  },
   translationLine: {
     ...typography.body,
-    color: colors.fog,
-    textAlign: "center",
+    color: colors.slate,
+    textAlign: "left",
+    lineHeight: 24,
+  },
+  translationPlaceholder: {
+    gap: spacing[2],
+  },
+  placeholderLineLong: {
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.mist,
+    width: "88%",
+  },
+  placeholderLineShort: {
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.mist,
+    width: "62%",
+  },
+  suggestionsCard: {
+    borderRadius: 20,
+    backgroundColor: colors.sage200,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    gap: spacing[3],
+  },
+  suggestionOption: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing[3],
+    backgroundColor: colors.paper,
+    borderRadius: 16,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
+    marginBottom: spacing[2],
+  },
+  suggestionNumberBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: colors.sage700,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  suggestionNumberText: {
+    ...typography.micro,
+    color: colors.paper,
+  },
+  suggestionCopy: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  suggestionRomanized: {
+    ...typography.body,
+    color: colors.ink,
+  },
+  suggestionEnglish: {
+    ...typography.caption,
+    color: colors.slate,
+    lineHeight: 20,
   },
   errorText: {
     ...typography.caption,

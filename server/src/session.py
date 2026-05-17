@@ -27,7 +27,11 @@ from src.config import Settings, load_settings
 from src.conversation_helper import ConversationHelper
 from src.languages import Language, get_language
 from src.prompts import build_character_system_prompt
-from src.rtvi import send_helper_message, send_session_complete_message
+from src.rtvi import (
+    send_helper_message,
+    send_session_complete_message,
+    send_translation_message,
+)
 from src.scenarios import Scenario, get_scenario
 
 
@@ -162,13 +166,34 @@ async def _run_session(
         state.conversation_lines.append(f"{scenario.character_name}: {message.content}")
         logger.info(f"Transcript: {line}")
 
-        try:
-            result = await helper.analyze_turn(
+        translation_task = asyncio.create_task(
+            helper.translate_turn(
+                language=language,
+                assistant_line=message.content,
+            )
+        )
+        guidance_task = asyncio.create_task(
+            helper.analyze_turn(
                 scenario=scenario,
                 language=language,
                 conversation_lines=state.conversation_lines,
                 assistant_line=message.content,
             )
+        )
+
+        try:
+            translation_result = await translation_task
+            await send_translation_message(
+                task.rtvi,
+                language=language,
+                character_name=scenario.character_name,
+                result=translation_result,
+            )
+        except Exception:
+            logger.exception("Failed to send translation payload")
+
+        try:
+            result = await guidance_task
         except Exception:
             logger.exception("Failed to analyze assistant turn")
             return

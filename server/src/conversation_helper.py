@@ -8,7 +8,12 @@ from google.genai import types
 
 from src.config import Settings
 from src.languages import Language
-from src.prompts import build_helper_input, build_helper_system_prompt
+from src.prompts import (
+    build_helper_input,
+    build_helper_system_prompt,
+    build_translation_input,
+    build_translation_system_prompt,
+)
 from src.scenarios import Scenario
 
 
@@ -19,8 +24,12 @@ class Suggestion:
 
 
 @dataclass(frozen=True)
-class ConversationHelperResult:
+class TranslationResult:
     translation: str
+
+
+@dataclass(frozen=True)
+class ConversationGuidanceResult:
     suggestions: list[Suggestion]
     is_complete: bool
     outcome: str
@@ -39,12 +48,24 @@ class ConversationHelper:
         language: Language,
         conversation_lines: list[str],
         assistant_line: str,
-    ) -> ConversationHelperResult:
+    ) -> ConversationGuidanceResult:
         return await asyncio.to_thread(
             self._analyze_turn_sync,
             scenario,
             language,
             conversation_lines,
+            assistant_line,
+        )
+
+    async def translate_turn(
+        self,
+        *,
+        language: Language,
+        assistant_line: str,
+    ) -> TranslationResult:
+        return await asyncio.to_thread(
+            self._translate_turn_sync,
+            language,
             assistant_line,
         )
 
@@ -70,9 +91,8 @@ class ConversationHelper:
                 response_mime_type="application/json",
                 response_schema=types.Schema(
                     type=types.Type.OBJECT,
-                    required=["translation", "suggestions", "is_complete", "outcome", "reason"],
+                    required=["suggestions", "is_complete", "outcome", "reason"],
                     properties={
-                        "translation": types.Schema(type=types.Type.STRING),
                         "suggestions": types.Schema(
                             type=types.Type.ARRAY,
                             items=types.Schema(
@@ -108,10 +128,31 @@ class ConversationHelper:
             for item in parsed["suggestions"]
         ]
 
-        return ConversationHelperResult(
-            translation=parsed["translation"].strip(),
+        return ConversationGuidanceResult(
             suggestions=suggestions,
             is_complete=bool(parsed["is_complete"]),
             outcome=str(parsed["outcome"]).strip(),
             reason=str(parsed["reason"]).strip(),
         )
+
+    def _translate_turn_sync(
+        self,
+        language: Language,
+        assistant_line: str,
+    ) -> TranslationResult:
+        response = self._client.models.generate_content(
+            model=self._settings.helper_model,
+            contents=build_translation_input(assistant_line=assistant_line),
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_level=self._settings.helper_thinking_level,
+                ),
+                system_instruction=build_translation_system_prompt(language),
+            ),
+        )
+
+        translation = (response.text or "").strip()
+        if not translation:
+            raise ValueError("Conversation helper returned no translation text")
+
+        return TranslationResult(translation=translation)

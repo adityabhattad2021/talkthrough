@@ -24,11 +24,17 @@ export type HelperResultPayload = {
   language: string;
   languageId: string;
   characterName: string;
-  translation: string;
   suggestions: Suggestion[];
   isComplete: boolean;
   outcome: string;
   reason: string;
+};
+
+export type TranslationResultPayload = {
+  language: string;
+  languageId: string;
+  characterName: string;
+  translation: string;
 };
 
 export type SessionCompletePayload = {
@@ -40,6 +46,10 @@ export type SessionCompletePayload = {
 };
 
 export type ServerEnvelope =
+  | {
+      type: "translation_result";
+      data: TranslationResultPayload;
+    }
   | {
       type: "helper_result";
       data: HelperResultPayload;
