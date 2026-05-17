@@ -89,6 +89,9 @@ app/
 │   │   │   ├── model/
 │   │   └── roleplay/
 │   │       ├── components/
+│   │       ├── data/
+│   │       ├── hooks/
+│   │       ├── model/
 │   │       ├── options.ts
 │   │       └── RoleplayDebugScreen.tsx
 │   ├── theme/
@@ -99,9 +102,7 @@ app/
 │   └── lib/
 │       ├── server.ts
 │       └── pipecat/
-│           ├── client.ts
-│           ├── types.ts
-│           └── useRoleplaySession.ts
+│           └── client.ts
 └── ios/ android/
 ```
 
@@ -256,11 +257,11 @@ Current production roleplay route.
 It is responsible for:
 
 - reading `scenarioId`, `difficultyId`, and `languageId` from route params
-- fetching scenario detail from `/app/scenarios/{id}`
-- starting the Pipecat live session with the selected difficulty and language
-- rendering current conversation state
+- calling `useRoleplayScreenState()`
+- holding screen-local presentation behavior such as responsive layout and navigation
+- composing the roleplay UI from smaller presentational components
 
-This screen is still early, but it is now the real integration path instead of just a debug surface.
+This route should stay thin.
 
 ### [src/features/roleplay/RoleplayDebugScreen.tsx](src/features/roleplay/RoleplayDebugScreen.tsx)
 
@@ -285,6 +286,60 @@ If business logic starts growing here, move it into:
 - a dedicated state layer
 
 This screen is no longer the app entry point, but it is still useful as an integration and debugging surface while the production roleplay flow is being built.
+
+### `src/features/roleplay/model/*`
+
+The roleplay domain types live here.
+
+This layer now holds:
+- scenario detail types
+- session state types
+- helper/server message shapes
+
+If the backend message shape changes, start here first.
+
+### `src/features/roleplay/data/*`
+
+Repository boundary for the roleplay feature.
+
+Today:
+- `scenarioRepository.ts` defines the scenario-detail contract
+- `scenarioRepository.http.ts` fetches `/app/scenarios/{id}`
+- `roleplayRepository.ts` defines the realtime session contract
+- `roleplayRepository.pipecat.ts` adapts Pipecat callbacks into app session state
+
+This is where we isolate:
+- backend fetch details
+- Pipecat transport details
+- realtime message normalization
+
+### `src/features/roleplay/hooks/*`
+
+Roleplay feature hooks now have clear boundaries.
+
+Today:
+- `useScenarioDetail()` loads scenario metadata
+- `useRoleplaySession()` manages the live session through the roleplay repository
+- `useRoleplayScreenState()` composes scenario data plus session state for the route
+- `useSessionTimer()` is a small UI-layer hook for the running session timer
+
+The important split is:
+- repositories own external sources
+- feature hooks compose feature state
+- UI hooks own local presentation behavior
+
+### `src/features/roleplay/components/*`
+
+Small presentational pieces for the production roleplay route.
+
+Today this includes:
+- `RoleplayHeader`
+- `AgentStatusSection`
+- `Waveform`
+- `TranslationCard`
+- `SuggestionPanel`
+
+These components should stay UI-focused.
 
 ### [src/features/roleplay/options.ts](src/features/roleplay/options.ts)
 
@@ -311,44 +366,22 @@ It currently:
 
 If we ever change transport or media manager, start here.
 
-### [src/lib/pipecat/types.ts](src/lib/pipecat/types.ts)
-
-Type definitions for:
-- app-side session state
-- helper message payloads
-- transcript items
-
-If server message shapes change, this is one of the first places to update.
-
-### [src/lib/pipecat/useRoleplaySession.ts](src/lib/pipecat/useRoleplaySession.ts)
-
-This is the main app-side session controller.
-
-It:
-- creates the Pipecat client
-- subscribes to Pipecat callbacks
-- stores transport state
-- stores transcript state
-- stores helper output
-- exposes `connect()` and `disconnect()`
-
-This is the best file to read if you want to understand the app’s realtime behavior.
-
-If something in the live session flow is wrong, this is usually the first file to inspect.
-
 ## How Connection Startup Works
 
 The app currently connects like this:
 
-1. UI calls `connect(...)`.
-2. `useRoleplaySession` calls `client.initDevices()`.
-3. Then it calls `client.startBotAndConnect(...)`.
-4. The request goes to:
+1. The roleplay route calls `useRoleplayScreenState(...)`.
+2. `useRoleplayScreenState()` composes `useScenarioDetail()` and `useRoleplaySession()`.
+3. `useRoleplaySession()` talks to `PipecatRoleplayRepository`.
+4. The repository calls `client.initDevices()`.
+5. Then it calls `client.startBotAndConnect(...)`.
+6. The request goes to:
    - `http://localhost:7860/start`
-5. We send:
+7. We send:
    - `scenario_id`
    - `language`
-6. Backend starts the session and the realtime call begins.
+   - `difficulty_id`
+8. Backend starts the session and the realtime call begins.
 
 Important detail:
 
@@ -462,12 +495,15 @@ At that point:
 ### Change session UI
 
 Start in:
-- [src/features/roleplay/RoleplayDebugScreen.tsx](src/features/roleplay/RoleplayDebugScreen.tsx)
+- [src/app/scenario/[id]/roleplay.tsx](src/app/scenario/[id]/roleplay.tsx)
+- `src/features/roleplay/components/*`
 
 ### Change session behavior / callback handling
 
 Start in:
-- [src/lib/pipecat/useRoleplaySession.ts](src/lib/pipecat/useRoleplaySession.ts)
+- `src/features/roleplay/data/roleplayRepository.pipecat.ts`
+- `src/features/roleplay/hooks/useRoleplaySession.ts`
+- `src/features/roleplay/hooks/useRoleplayScreenState.ts`
 
 ### Change transport or media manager
 

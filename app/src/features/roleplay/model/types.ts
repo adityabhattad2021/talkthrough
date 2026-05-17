@@ -86,3 +86,29 @@ export type ConnectParams = {
   languageId: string;
   difficultyId: string;
 };
+
+export type ScenarioDetail = {
+  id: string;
+  title: string;
+  characterName: string;
+  characterRole: string;
+  selectedDifficultyId: string;
+  selectedLanguageId: string;
+};
+
+export type ScenarioDetailParams = {
+  scenarioId: string;
+  languageId: string;
+  difficultyId: string;
+};
+
+export type RoleplayScreenState = {
+  scenario: ScenarioDetail | null;
+  isLoadingScenario: boolean;
+  scenarioError: string | null;
+  session: RoleplaySessionState;
+  streamedBotLine: string;
+  statusLabel: string;
+  disconnect: () => Promise<void>;
+  clearError: () => void;
+};

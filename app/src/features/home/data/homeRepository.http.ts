@@ -6,7 +6,7 @@ import { HomeRepository } from "./homeRepository";
 
 export class HttpHomeRepository implements HomeRepository {
   async getHomeData(): Promise<HomeData> {
-    const response = await fetch(buildServerUrl("/app/home?language_id=marathi"));
+    const response = await fetch(buildServerUrl("/app/home?language_id=kannada"));
 
     if (!response.ok) {
       throw new Error(`Home request failed with status ${response.status}`);

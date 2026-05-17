@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useRoleplaySession } from "../../lib/pipecat/useRoleplaySession";
+import { useRoleplaySession } from "./hooks/useRoleplaySession";
 import { ROLEPLAY_LANGUAGES, ROLEPLAY_SCENARIOS } from "./options";
 import { useLocalSearchParams } from "expo-router";
 
@@ -45,20 +45,25 @@ function ChoiceChips({
 }
 
 export function RoleplayDebugScreen() {
-  const { state, connect, disconnect, clearError } = useRoleplaySession();
-
   const [serverUrl, setServerUrl] = useState("http://localhost:7860");
   const [scenarioId, setScenarioId] = useState("auto-rickshaw");
   const [languageId, setLanguageId] = useState("marathi");
   const [difficultyId] = useState("medium");
   const { id } = useLocalSearchParams<{id:string}>();
+  const { state, connect, disconnect, clearError } = useRoleplaySession({
+    scenarioId,
+    languageId,
+    difficultyId,
+    serverUrl,
+    autoConnect: false,
+  });
 
   useEffect(()=>{
     if(id){
       setScenarioId(id);
-      connect({ serverUrl, scenarioId: id, languageId, difficultyId });
+      void connect({ serverUrl });
     }
-  }, [difficultyId, id, languageId, serverUrl])
+  }, [connect, id, serverUrl])
 
 
   const canConnect = useMemo(() => {
@@ -125,7 +130,7 @@ export function RoleplayDebugScreen() {
           <View style={styles.buttonRow}>
             <Pressable
               disabled={!canConnect}
-              onPress={() => connect({ serverUrl, scenarioId, languageId, difficultyId })}
+              onPress={() => void connect({ serverUrl })}
               style={[
                 styles.button,
                 styles.primaryButton,

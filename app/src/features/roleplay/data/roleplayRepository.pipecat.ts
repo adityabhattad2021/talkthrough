@@ -1,19 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-
 import {
   TransportStateEnum,
   type BotOutputData,
   type PipecatClient,
+  type PipecatClientOptions,
   type TranscriptData,
 } from "@pipecat-ai/client-js";
 
-import { createPipecatClient } from "./client";
+import { createPipecatClient } from "@/lib/pipecat/client";
+
+import type {
+  RoleplayRepositoryClientFactory,
+  RoleplayRepository,
+  RoleplaySessionListener,
+} from "./roleplayRepository";
 import type {
   ConnectParams,
   RoleplaySessionState,
   ServerEnvelope,
   TranscriptLine,
-} from "./types";
+} from "../model/types";
 
 const INITIAL_STATE: RoleplaySessionState = {
   transportState: TransportStateEnum.DISCONNECTED,
@@ -153,19 +158,23 @@ function clampAudioLevel(level: number): number {
   return Math.max(0, Math.min(1, level));
 }
 
-export function useRoleplaySession() {
-  const clientRef = useRef<PipecatClient | null>(null);
-  const lastUserFinalRef = useRef("");
-  const lastBotSentenceRef = useRef("");
-  const botWordBufferRef = useRef<string[]>([]);
-  const lastBotChunkRef = useRef("");
+export class PipecatRoleplayRepository implements RoleplayRepository {
+  private readonly client: PipecatClient;
+  private readonly listeners = new Set<RoleplaySessionListener>();
+  private state: RoleplaySessionState = INITIAL_STATE;
+  private lastUserFinal = "";
+  private lastBotSentence = "";
+  private botWordBuffer: string[] = [];
+  private lastBotChunk = "";
 
-  const [state, setState] = useState<RoleplaySessionState>(INITIAL_STATE);
-
-  useEffect(() => {
-    const client = createPipecatClient({
+  constructor(
+    clientFactory: RoleplayRepositoryClientFactory = (
+      callbacks: PipecatClientOptions["callbacks"],
+    ) => createPipecatClient(callbacks),
+  ) {
+    this.client = clientFactory({
       onTransportStateChanged: (transportState) => {
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
           transportState,
           uiState: getUiState(
@@ -177,9 +186,8 @@ export function useRoleplaySession() {
         }));
       },
       onDisconnected: () => {
-        botWordBufferRef.current = [];
-        lastBotChunkRef.current = "";
-        setState((current) => ({
+        this.resetBuffers();
+        this.setState((current) => ({
           ...current,
           transportState: TransportStateEnum.DISCONNECTED,
           remoteAudioLevel: 0,
@@ -195,20 +203,20 @@ export function useRoleplaySession() {
             ? maybeMessage.message
             : "Pipecat reported an error.";
 
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
           error,
           uiState: "error",
         }));
       },
       onRemoteAudioLevel: (level) => {
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
           remoteAudioLevel: clampAudioLevel(level),
         }));
       },
       onUserStartedSpeaking: () => {
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
           isUserSpeaking: true,
           uiState: getUiState(
@@ -220,10 +228,11 @@ export function useRoleplaySession() {
         }));
       },
       onUserStoppedSpeaking: () => {
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
           isUserSpeaking: false,
           currentUserText: "",
+          suggestions: [],
           uiState: getUiState(
             current.transportState,
             current.error,
@@ -233,10 +242,10 @@ export function useRoleplaySession() {
         }));
       },
       onBotStartedSpeaking: () => {
-        setState((current) => {
+        this.setState((current) => {
           if (!current.isBotSpeaking) {
-            botWordBufferRef.current = [];
-            lastBotChunkRef.current = "";
+            this.botWordBuffer = [];
+            this.lastBotChunk = "";
           }
 
           return {
@@ -254,8 +263,8 @@ export function useRoleplaySession() {
         });
       },
       onBotStoppedSpeaking: () => {
-        lastBotChunkRef.current = "";
-        setState((current) => ({
+        this.lastBotChunk = "";
+        this.setState((current) => ({
           ...current,
           isBotSpeaking: false,
           remoteAudioLevel: 0,
@@ -273,19 +282,19 @@ export function useRoleplaySession() {
         }
 
         if (!data.final) {
-          setState((current) => ({
+          this.setState((current) => ({
             ...current,
             currentUserText: data.text,
           }));
           return;
         }
 
-        if (data.text === lastUserFinalRef.current) {
+        if (data.text === this.lastUserFinal) {
           return;
         }
 
-        lastUserFinalRef.current = data.text;
-        setState((current) => ({
+        this.lastUserFinal = data.text;
+        this.setState((current) => ({
           ...current,
           currentUserText: "",
           transcript: [
@@ -300,14 +309,14 @@ export function useRoleplaySession() {
         }
 
         if (data.spoken && data.aggregated_by === "word") {
-          if (data.text !== lastBotChunkRef.current) {
-            botWordBufferRef.current = [...botWordBufferRef.current, data.text];
-            lastBotChunkRef.current = data.text;
+          if (data.text !== this.lastBotChunk) {
+            this.botWordBuffer = [...this.botWordBuffer, data.text];
+            this.lastBotChunk = data.text;
           }
 
-          setState((current) => ({
+          this.setState((current) => ({
             ...current,
-            currentBotText: botWordBufferRef.current.join(" ").trim(),
+            currentBotText: this.botWordBuffer.join(" ").trim(),
           }));
           return;
         }
@@ -315,13 +324,13 @@ export function useRoleplaySession() {
         if (
           !data.spoken ||
           data.aggregated_by !== "sentence" ||
-          data.text === lastBotSentenceRef.current
+          data.text === this.lastBotSentence
         ) {
           return;
         }
 
-        lastBotSentenceRef.current = data.text;
-        setState((current) => ({
+        this.lastBotSentence = data.text;
+        this.setState((current) => ({
           ...current,
           latestBotLine: data.text,
           currentBotText: data.text,
@@ -336,14 +345,14 @@ export function useRoleplaySession() {
           return;
         }
 
-        if (data.text !== lastBotChunkRef.current) {
-          botWordBufferRef.current = [...botWordBufferRef.current, data.text];
-          lastBotChunkRef.current = data.text;
+        if (data.text !== this.lastBotChunk) {
+          this.botWordBuffer = [...this.botWordBuffer, data.text];
+          this.lastBotChunk = data.text;
         }
 
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
-          currentBotText: botWordBufferRef.current.join(" ").trim(),
+          currentBotText: this.botWordBuffer.join(" ").trim(),
         }));
       },
       onServerMessage: (payload: unknown) => {
@@ -353,7 +362,7 @@ export function useRoleplaySession() {
         }
 
         if (message.type === "translation_result") {
-          setState((current) => ({
+          this.setState((current) => ({
             ...current,
             translation: message.data.translation,
           }));
@@ -361,7 +370,7 @@ export function useRoleplaySession() {
         }
 
         if (message.type === "helper_result") {
-          setState((current) => ({
+          this.setState((current) => ({
             ...current,
             suggestions: message.data.suggestions,
             judge: {
@@ -373,7 +382,7 @@ export function useRoleplaySession() {
           return;
         }
 
-        setState((current) => ({
+        this.setState((current) => ({
           ...current,
           transcript: normalizeSessionTranscript(message.data.transcript),
           judge: {
@@ -385,29 +394,28 @@ export function useRoleplaySession() {
         }));
       },
     });
+  }
 
-    clientRef.current = client;
+  getSnapshot(): RoleplaySessionState {
+    return this.state;
+  }
 
+  subscribe(listener: RoleplaySessionListener): () => void {
+    this.listeners.add(listener);
     return () => {
-      void client.disconnect();
-      clientRef.current = null;
+      this.listeners.delete(listener);
     };
-  }, []);
+  }
 
-  async function connect({
+  async connect({
     serverUrl,
     scenarioId,
     languageId,
     difficultyId,
-  }: ConnectParams) {
-    const client = clientRef.current;
-    if (!client) {
-      return;
-    }
-
+  }: ConnectParams): Promise<void> {
     const baseUrl = serverUrl.trim().replace(/\/$/, "");
     if (!baseUrl) {
-      setState((current) => ({
+      this.setState((current) => ({
         ...current,
         error: "Server URL is required.",
         uiState: "error",
@@ -415,19 +423,17 @@ export function useRoleplaySession() {
       return;
     }
 
-    lastUserFinalRef.current = "";
-    lastBotSentenceRef.current = "";
-    botWordBufferRef.current = [];
-    lastBotChunkRef.current = "";
-    setState({
+    this.resetBuffers();
+    this.state = {
       ...INITIAL_STATE,
       transportState: TransportStateEnum.INITIALIZING,
       uiState: "connecting",
-    });
+    };
+    this.emit();
 
     try {
-      await client.initDevices();
-      await client.startBotAndConnect({
+      await this.client.initDevices();
+      await this.client.startBotAndConnect({
         endpoint: `${baseUrl}/start`,
         requestData: {
           body: {
@@ -438,7 +444,7 @@ export function useRoleplaySession() {
         },
       });
     } catch (error) {
-      setState((current) => ({
+      this.setState((current) => ({
         ...current,
         error: getErrorMessage(error),
         transportState: TransportStateEnum.ERROR,
@@ -447,22 +453,15 @@ export function useRoleplaySession() {
     }
   }
 
-  async function disconnect() {
-    const client = clientRef.current;
-    if (!client) {
-      return;
-    }
-
-    await client.disconnect();
-    lastUserFinalRef.current = "";
-    lastBotSentenceRef.current = "";
-    botWordBufferRef.current = [];
-    lastBotChunkRef.current = "";
-    setState(INITIAL_STATE);
+  async disconnect(): Promise<void> {
+    await this.client.disconnect();
+    this.resetBuffers();
+    this.state = INITIAL_STATE;
+    this.emit();
   }
 
-  function clearError() {
-    setState((current) => ({
+  clearError(): void {
+    this.setState((current) => ({
       ...current,
       error: null,
       uiState: getUiState(
@@ -474,10 +473,28 @@ export function useRoleplaySession() {
     }));
   }
 
-  return {
-    state,
-    connect,
-    disconnect,
-    clearError,
-  };
+  async dispose(): Promise<void> {
+    await this.client.disconnect();
+    this.listeners.clear();
+  }
+
+  private setState(
+    updater: (current: RoleplaySessionState) => RoleplaySessionState,
+  ): void {
+    this.state = updater(this.state);
+    this.emit();
+  }
+
+  private emit(): void {
+    for (const listener of this.listeners) {
+      listener(this.state);
+    }
+  }
+
+  private resetBuffers(): void {
+    this.lastUserFinal = "";
+    this.lastBotSentence = "";
+    this.botWordBuffer = [];
+    this.lastBotChunk = "";
+  }
 }
